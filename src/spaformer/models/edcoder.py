@@ -160,8 +160,6 @@ class EntryTokenizer(nn.Module):
         num_bins: int,
         d_model: int,
     ):
-        # import pdb
-        # pdb.set_trace()
         
         super().__init__()
         self.num_cells = num_cells
@@ -200,8 +198,6 @@ class EntryTokenizer(nn.Module):
         assert G == self.num_genes
         mask = mask.bool()
         
-        # import pdb
-        # pdb.set_trace()
 
         # ---- Cell embeddings ----
         cell_emb = self.cell_emb(cell_ids.to(device))        # [C, d_model]
@@ -236,8 +232,6 @@ class GeneDecoder(nn.Module):
         self, d_model: int, hidden:int = None):
         super().__init__()
         hidden = hidden or (2*d_model)
-        # import pdb
-        # pdb.set_trace()
         
         self.MLP = nn.Sequential(
             nn.Linear(d_model, hidden),
@@ -248,8 +242,6 @@ class GeneDecoder(nn.Module):
         )
         
     def forward(self, x):
-        # import pdb
-        # pdb.set_trace()
         """x is the output of the transformer, (batch, seq_len, d_model)"""
         pred_value = self.MLP(x).squeeze(-1)  # (batch, seq_len)
         return pred_value
@@ -286,8 +278,6 @@ class CellCLSDecoder(nn.Module):
     def __init__(self, d_model: int):
         super().__init__()
         
-        # import pdb
-        # pdb.set_trace()
         
         
         self.gene2query = nn.Linear(d_model, d_model)
@@ -309,8 +299,6 @@ class CellCLSDecoder(nn.Module):
         '''Do I need to detach?'''
         # iden_emb = iden_emb.detach() if self.do_detach else iden_emb
         
-        # import pdb
-        # pdb.set_trace()
         
         query_vecs = self.query_activation(self.gene2query(iden_emb))
         # cls_e = cls_e.unsqueeze(2)  # (batch, embsize, 1)
@@ -323,8 +311,6 @@ class CellCLSDecoder(nn.Module):
 @DeprecationWarning
 class GlobalCLSNegativeCache(nn.Module):
     def __init__(self, num_cells, hidden_dim, num_neg=128, device="cuda"):       
-        # import pdb
-        # pdb.set_trace()
         
         super().__init__()
         self.num_cells = num_cells
@@ -336,8 +322,6 @@ class GlobalCLSNegativeCache(nn.Module):
 
     @torch.no_grad()
     def update(self, cls_out, cell_ids, B):
-        # import pdb
-        # pdb.set_trace()
         
         anchor_ids = cell_ids[:B]
         anchor_cls = cls_out[:B]
@@ -358,8 +342,6 @@ class GlobalCLSNegativeCache(nn.Module):
             neg_ids: [B, num_neg]
         """
         
-        # import pdb
-        # pdb.set_trace()
         
         device = cell_ids.device
         B, K = adj_sub.shape
@@ -504,8 +486,6 @@ class PreModel(nn.Module):
             aggr = 'SAGE',
          ):
         
-        # import pdb
-        # pdb.set_trace()
         
         super(PreModel, self).__init__()
         '''This is used for corrupting nodes - not used in our case'''
@@ -532,8 +512,6 @@ class PreModel(nn.Module):
         # self.cell_token = CellTokenizer(in_cell, in_dim, d_emb_size, mask_e)
         # self.gene_token = GeneTokenizer(in_cell, in_dim, d_emb_size, mask_e)
         
-        # import pdb
-        # pdb.set_trace()
         '''Here we get all the values needed to create entry tokenizer'''
                 
         self.entry_token = EntryTokenizer(in_cell, in_dim, num_bins, d_emb_size)
@@ -719,8 +697,6 @@ class PreModel(nn.Module):
         # num_marker = 3500
         # num_house_keeping = 1500
         
-        # import pdb
-        # pdb.set_trace()
         
         mask_name = f"shared_mask_{num_marker}_{num_house_keeping}"
 
@@ -730,8 +706,6 @@ class PreModel(nn.Module):
         non_marker_cells = np.random.choice(cells, size=num_house_keeping, replace=True)
         non_marker_genes = np.random.choice(non_marker_indices, size=num_house_keeping, replace=True)
         
-        # import pdb
-        # pdb.set_trace()
         
         
         masks = np.ones((cells, genes))
@@ -740,8 +714,6 @@ class PreModel(nn.Module):
         masks[(non_marker_cells, non_marker_genes)]=0
         
         if eval:
-            # import pdb
-            # pdb.set_trace()
             
             if first_time:
                 self.save_fixed_mask(masks, mask_name)
@@ -882,8 +854,6 @@ class PreModel(nn.Module):
         H: [N, C] - cell embeddings
         adj: [N, N] - adjacency matrix (torch.Tensor or torch.sparse)
         """
-        # import pdb
-        # pdb.set_trace()
         
         mask = torch.eye(adj.size(0), dtype=torch.bool, device=adj.device)
         adj_masked = adj.masked_fill(mask, 0)
@@ -934,8 +904,6 @@ class PreModel(nn.Module):
     
     def weighted_contrastive_loss(self,Z, g, sigma=2000.0, tau=0.2):
         
-        # import pdb
-        # pdb.set_trace()
         
         coords = g.ndata["pos"]
         adj = g.ndata["adj"]
@@ -1017,8 +985,6 @@ class PreModel(nn.Module):
         return ((G - I) ** 2).sum()
     
     def batch_pca_knn_InfoNCE(self, cls_out, X_pca, adj_sub, tau=1):
-        # import pdb
-        # pdb.set_trace()
         
         B, K = adj_sub.shape
 
@@ -1067,8 +1033,6 @@ class PreModel(nn.Module):
         Positives = spatial neighbors (adj_sub), weighted by cosine similarity.
         Denominator = all non-self candidates (standard multi-positive InfoNCE denominator).
         """
-        # import pdb
-        # pdb.set_trace()
         
         device = emb_pool.device
         K, D = emb_pool.shape
@@ -1166,8 +1130,6 @@ class PreModel(nn.Module):
         Positives = spatial neighbors (adj_sub), weighted by cosine similarity.
         Denominator = all non-self candidates (standard multi-positive InfoNCE denominator).
         """
-        # import pdb
-        # pdb.set_trace()
         
         device = emb_pool.device
         K, D = emb_pool.shape
@@ -1188,8 +1150,6 @@ class PreModel(nn.Module):
         self_mask = torch.zeros((B, K), dtype=torch.bool, device=device)
         self_mask[torch.arange(B), torch.arange(B)] = True
         
-        # import pdb
-        # pdb.set_trace()
 
         pos_mask = pos_mask & (~self_mask)
         neg_mask = (~pos_candidate_mask) & (~self_mask) 
@@ -1234,8 +1194,6 @@ class PreModel(nn.Module):
         negative_pca_threshold=0,
         eps=1e-12,
         ):
-        # import pdb
-        # pdb.set_trace()
         
         device = emb_pool.device
         K, D = emb_pool.shape
@@ -1245,8 +1203,6 @@ class PreModel(nn.Module):
         anchor_z = z[:B]                                      # [B, D]
         logits = (anchor_z @ z.T) / tau                       # [B, K]
         
-        # import pdb
-        # pdb.set_trace()
         
         gene_sim_batch = F.normalize(X_pca_batch, dim=1)
         gene_sim_anc = gene_sim_batch[:B]
@@ -1259,8 +1215,6 @@ class PreModel(nn.Module):
         self_mask = torch.zeros((B, K), dtype=torch.bool, device=device)
         self_mask[torch.arange(B), torch.arange(B)] = True
         
-        # import pdb
-        # pdb.set_trace()
 
         pos_mask = pos_mask & (~self_mask)
         neg_mask = (~pos_candidate_mask) & (~self_mask) & (gene_sim < negative_pca_threshold)
@@ -1301,8 +1255,6 @@ class PreModel(nn.Module):
         negative_pca_threshold=0,
         eps=1e-12,
     ):
-        # import pdb
-        # pdb.set_trace()
         
         """
         Positives:
@@ -1319,8 +1271,6 @@ class PreModel(nn.Module):
         K, _ = emb_pool.shape
         B = C_dst
         
-        # import pdb
-        # pdb.set_trace()
         
         # ------------------------------------------------------------------
         # CLS cosine similarities
@@ -1431,8 +1381,6 @@ class PreModel(nn.Module):
         tau=1.0,
         eps=1e-12,
         ):
-        # import pdb
-        # pdb.set_trace()
         
         device = cls_out.device
         B, K = adj_sub.shape
@@ -1488,8 +1436,6 @@ class PreModel(nn.Module):
         tau=1.0,
         eps=1e-12,
         ):
-        # import pdb
-        # pdb.set_trace()
         
         device = cls_out.device
         B, K = adj_sub.shape
@@ -1511,8 +1457,6 @@ class PreModel(nn.Module):
         self_mask = torch.zeros((B, K), dtype=torch.bool, device=device)
         self_mask[torch.arange(B, device=device), torch.arange(B, device=device)] = True
         
-        # import pdb
-        # pdb.set_trace()
         
         top_k_mask = torch.zeros((B, K), dtype=torch.bool, device=device)
         top_k_mask.scatter_(1, pos_indices, True)
@@ -1640,7 +1584,6 @@ class PreModel(nn.Module):
         )
 
         # PCA-negative candidates.
-        #
         # ~pos_mask gives positive pairs precedence. Therefore, a spatial
         # positive with PCA similarity < 0 remains positive rather than being
         # assigned to both sets.
@@ -1805,7 +1748,6 @@ class PreModel(nn.Module):
         )
 
         # PCA-negative candidates.
-        #
         # ~pos_mask gives positive pairs precedence. Therefore, a spatial
         # positive with PCA similarity < 0 remains positive rather than being
         # assigned to both sets.
@@ -1881,8 +1823,6 @@ class PreModel(nn.Module):
             # use_g, use_x, (mask_nodes, keep_nodes) = self.encoding_mask_noise(g, x)
         # else:
         
-        # import pdb
-        # pdb.set_trace()
         
         requires_cls = args.encoder == "axialformer_temp_fix"
 
@@ -1944,26 +1884,18 @@ class PreModel(nn.Module):
             
         '''This is where we call forward function -> to create actual embeddings given mask_in, bin_val, Z_val'''
         
-        # import pdb
-        # pdb.set_trace()
         
         '''adjacency matrix - might be better to pass in adj from main.py'''
-        # import pdb
-        # pdb.set_trace()
         
         adj = g.ndata["adj"]
         pos_mask = g.ndata["attn_mask"]
         # adj_pca_filtered = g.ndata["adj_filtered"]
         
-        # import pdb
-        # pdb.set_trace()
         
         bin_batch   = X_bins[cell_ids_cpu]       # [C_batch, G]
         z_batch     = z_val[cell_ids_cpu]        # [C_batch, G]
         X_batch     = X[target_idx]            # [C_batch, G]
         '''This will change'''
-        # import pdb
-        # pdb.set_trace()
         
         X_pca_batch = X_pca[cell_ids_cpu]
         
@@ -1972,20 +1904,14 @@ class PreModel(nn.Module):
         mask_in_batch  = mask_in[cell_ids_cpu]    # [C_batch, G], bool
         mask_train_batch = mask_train[target_idx]
         if not mask_train_batch.any():
-            # import pdb
-            # pdb.set_trace()
             return None, {}
 
-        # import pdb
-        # pdb.set_trace()
         
         '''only ones in the batch are available'''
         # cell_attn_mask_batch = pos_mask[cell_ids_cpu][:, cell_ids_cpu]
         
         # start from here
         
-        # import pdb
-        # pdb.set_trace()
         
         A_sub = adj[cell_ids_cpu][:, cell_ids_cpu].bool()  # [C_batch, C_batch]
         # A_sub_pca_filtered = adj_pca_filtered[cell_ids_cpu][:, cell_ids_cpu].bool()
@@ -2009,20 +1935,14 @@ class PreModel(nn.Module):
         C,G,D = tokens.shape
         C_dst = target_idx.numel()
         
-        # import pdb
-        # pdb.set_trace()
         '''check'''
         # if is_gat:
-        #     # import pdb
-        #     # pdb.set_trace()
         #     A_sub.fill_diagonal_(False)
         A_sub_pre_edge = A_sub[:C_dst, :]
         '''We let diagonal true for now'''
         edge_idx = adj_to_edge_index(A_sub_pre_edge)
         
         
-        # import pdb
-        # pdb.set_trace()
         
         '''There has been change here'''
         # cls = self.cls_token.expand(B, C, 1, D) + cell_e
@@ -2047,8 +1967,6 @@ class PreModel(nn.Module):
         f"Expected encoder output {expected_shape}, got {tuple(x.shape)}")
         
         
-        # import pdb
-        # pdb.set_trace()
         if not is_cls:
             # x = x.squeeze(0)                                                     # [C,G+1,D]
             '''This is without cls'''
@@ -2060,8 +1978,6 @@ class PreModel(nn.Module):
        
         '''This is tested module'''
         if is_gat:
-            # import pdb
-            # pdb.set_trace()
             x = self.gat(cls_out.squeeze(0), edge_idx, C_dst, epoch)
             x = x.unsqueeze(0)
             
@@ -2073,8 +1989,6 @@ class PreModel(nn.Module):
         # X_pred_batch = X_pred[:C_dst, :]
         if is_gepc:
             # X_pred = self.decoderCLS(genes_out, cls_out)
-            # import pdb
-            # pdb.set_trace()
             
             '''Together'''
             # X_pred_cell = self.decoderCell(entry_iden_emb, cls_out)
@@ -2083,8 +1997,6 @@ class PreModel(nn.Module):
             X_pred_cell = self.decoderCell(entry_iden_emb[:C_dst, :, :], cls_out[:, :C_dst, :])
             X_pred_cell_batch = X_pred_cell
         
-        # import pdb
-        # pdb.set_trace()
         '''target(base cell) ground truth'''
         masked_batch_targets = X_batch[mask_train_batch]
         masked_batch_preds = X_pred_batch[mask_train_batch]
@@ -2107,8 +2019,6 @@ class PreModel(nn.Module):
         # if (epoch >=100) and is_contrast:  
         # if (epoch >= 75) and is_contrast:
         if is_contrast:
-            # import pdb
-            # pdb.set_trace()
             
             pos_candidate_mask = A_sub[:C_dst, :]
             # pos_pca_candidate_mask = A_sub_pca_filtered[:C_dst, :]
@@ -2158,8 +2068,6 @@ class PreModel(nn.Module):
         # return 10*(0.5*loss + 0.5*cell_loss) + 0.01 * contrastive_loss
         # return 10*(0.5*loss + 0.5*cell_loss) + 0.02 * contrastive_loss
         
-        # import pdb
-        # pdb.set_trace()
     
         # return 10*(0.5*loss + 0.5*cell_loss) + 0.02 * (0.5 * contrastive_loss_1 + 0.5 * contrastive_loss_2)
         # return 10*(0.5*loss + 0.5*cell_loss) + 0.02 * (0.1 * contrastive_loss_1 + 0.9 * contrastive_loss_2)
@@ -2470,8 +2378,6 @@ class PreModel(nn.Module):
     def batch_test(self, args, graphs, eval_mask, lbl,logger=None, slice=None, slice_num=None, save_pt_name=None):
         with torch.no_grad():
             
-            # import pdb
-            # pdb.set_trace()
          
             self.eval()
                     
@@ -2584,8 +2490,6 @@ class PreModel(nn.Module):
                     shuffle=False,     # deterministic order for eval
                     device=device,
                 ):
-                    # import pdb
-                    # pdb.set_trace()
                     
                     # Slice data for this batch
                     bin_batch   = X_bins[cell_ids]    # [C_batch, G]
@@ -2597,8 +2501,6 @@ class PreModel(nn.Module):
                     if task == "imputation":
                         mask_batch  = eval_mask[cell_ids]  # [C_batch, G], bool
                     elif task == "cluster":
-                        # import pdb
-                        # pdb.set_trace()
                         
                         mask = torch.zeros_like(eval_mask, dtype=torch.bool) # [all 0s of size: eval_mask]
                         mask_batch = mask[cell_ids]
@@ -2611,22 +2513,16 @@ class PreModel(nn.Module):
                     deg = A_hat.sum(dim=1, keepdim=True).clamp_min(1e-8)
                     A_hat = A_hat / deg 
                     
-                    # import pdb
-                    # pdb.set_trace()
                     # A_sub = A_sub + A_sub.fill_diagonal_(0)        
                     
                     # Allow self-attention for stability
                     cell_attn_mask_batch = ~A_sub   # True = block
                     # cell_attn_mask_batch_pca_filter = ~A_sub_pca_filtered
                     
-                    # import pdb
-                    # pdb.set_trace()
                     
                     
                     C_dst = target_idx.numel()
                     
-                    # import pdb
-                    # pdb.set_trace()
                     
                     A_sub_pre_edge = A_sub[:C_dst, :]
                     edge_idx = adj_to_edge_index(A_sub_pre_edge)
@@ -2638,8 +2534,6 @@ class PreModel(nn.Module):
                     B = 1
                     C, G, D = tokens.shape
                     
-                    # import pdb
-                    # pdb.set_trace()
 
                 
                     # cls = self.cls_token.expand(B, C, 1, D) + cell_e
@@ -2656,8 +2550,6 @@ class PreModel(nn.Module):
                     '''Mute this for CLS decoder'''
                     # x = x.squeeze(0)
                     
-                    # import pdb
-                    # pdb.set_trace()
                     
                 
                     # '''This is with CLS''' 
@@ -2668,8 +2560,6 @@ class PreModel(nn.Module):
                         '''This is without CLS'''
                         genes_out = x
                     
-                    # import pdb
-                    # pdb.set_trace()
                     
                     '''decoder step'''
                     X_pred_batch = self.decoderGene(genes_out).squeeze(-1).squeeze(0)
@@ -2683,8 +2573,6 @@ class PreModel(nn.Module):
                     X_pred_dst = X_pred_batch[:C_dst, :]
                     '''This implies cls will be all similar'''
                     
-                    # import pdb
-                    # pdb.set_trace()
                                     
                     # cls_dst    = cls_out[:, :C_dst, :].squeeze(0)
                     
@@ -2692,12 +2580,8 @@ class PreModel(nn.Module):
                     X_pred_full[target_idx] = X_pred_dst
                     # cell_emb_full[target_idx] = cls_dst.detach().cpu()
                     
-                    # import pdb
-                    # pdb.set_trace()
                     
                     # cell_emb_batch = pool(x)
-                    # import pdb
-                    # pdb.set_trace()
                 
                     '''What made this dimension change from d=2 to d=1??? -> we just do not squeeze. But this all needs to be verified'''
                     if not is_cls:
@@ -2706,8 +2590,6 @@ class PreModel(nn.Module):
                         cell_emb_full[target_idx] = cell_emb_batch.cpu()
                     else:
                         '''cls exists'''
-                        # import pdb
-                        # pdb.set_trace()
                         
                         '''This needs to be verified'''
                         cls_dst    = cls_out[:, :C_dst, :].squeeze(0)
@@ -2762,8 +2644,6 @@ class PreModel(nn.Module):
             
             if args.task == "cluster":
                 '''This is for clustering purpose'''
-                # import pdb
-                # pdb.set_trace()
                 return comprehensive_evaluate(cell_emb_full.cpu().detach().numpy(), X.detach().cpu().numpy(), eval_mask, pos, lbl, logger, slice=slice, slice_num=slice_num, num_clusters=args.num_clusters, output_dir=args.output_dir)
             elif args.task == "imputation":
                 '''This is for imputation purpose'''

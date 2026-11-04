@@ -40,8 +40,6 @@ class CellGraphPropagation(nn.Module):
         """
 
         # x_prop = torch.einsum('ij,jgd->igd', A_hat, x)
-        # import pdb
-        # pdb.set_trace()
         
         C, G, D = x.shape    
         x_2d = x.reshape(C, G * D)        # [C, G*D]
@@ -65,7 +63,6 @@ class CellWeightGraphPropagation(nn.Module):
         """
 
         # x_prop = torch.einsum('ij,jgd->igd', A_hat, x)
-        # import pdb
         # pdb.set_trace()  
         
         C, G, D = x.shape    
@@ -95,8 +92,6 @@ class CellWeightGraphPropagation(nn.Module):
 class AxialBlock(nn.Module):
     def __init__(self, d_model: int, n_heads: int, dropout: float = 0.1):
         super().__init__()
-        # import pdb
-        # pdb.set_trace()
         
         self.d_model = d_model
 
@@ -147,8 +142,6 @@ class AxialBlock(nn.Module):
         col_in = x.permute(0, 2, 1, 3).contiguous()  # [B, G, C, D]
         col_in = col_in.view(B * G, C, D)            # [B*G, C, D]
         
-        # import pdb
-        # pdb.set_trace()
         
         mask_rect = cell_attn_mask[target_idx, :]
         
@@ -157,8 +150,6 @@ class AxialBlock(nn.Module):
         v = col_in
 
         
-        # import pdb
-        # pdb.set_trace()
 
         col_out, _ = self.col_attn(q,k,v,attn_mask=mask_rect)  # [C, C], broadcast over B*G and heads 
         
@@ -241,16 +232,12 @@ class AxialBlockLayer(nn.Module):
         assert D == self.d_model
         assert Gp >= 2, "Need CLS + at least 1 gene token"
         
-        # import pdb
-        # pdb.set_trace()
         
         
         '''This is also muted'''
         C_dst = target_idx.numel()
         dst_idx = torch.arange(C_dst, device=cell_attn_mask.device, dtype=torch.long)
         
-        # import pdb
-        # pdb.set_trace()
         
         Gp = x.size(2)  # CLS + genes
         # row_mask = torch.zeros(Gp, Gp, dtype=torch.bool, device=x.device)
@@ -263,10 +250,7 @@ class AxialBlockLayer(nn.Module):
         '''This is without CLS - we do not use this for flash attention. need_weights=False makes speed faster???'''
         # row_out, _ = self.row_attn(row_in, row_in, row_in, need_weights=False) # Not sure about this need_weights component
         
-        # import pdb
-        # pdb.set_trace()
         
-        # print("Hi")
         '''
         This is how we run flash attention. I need to revise the code little bit
         check if CLS is used or not as well - Flash Attention do not run with mask
@@ -293,9 +277,6 @@ class AxialBlockLayer(nn.Module):
         k_ = k.to(torch.bfloat16)
         v_ = v.to(torch.bfloat16)      
         
-        # print("q:", q_.shape, q_.dtype, q_.device, q_.is_contiguous())
-        # print("k:", k_.shape, k_.dtype, k_.device, k_.is_contiguous())
-        # print("v:", v_.shape, v_.dtype, v_.device, v_.is_contiguous())
         
         from torch.cuda.amp import autocast
         
@@ -305,7 +286,6 @@ class AxialBlockLayer(nn.Module):
             with sdpa_kernel([SDPBackend.FLASH_ATTENTION]):
                 with autocast(dtype=torch.bfloat16):
                     row_out = F.scaled_dot_product_attention(q_, k_, v_, attn_mask=None, dropout_p=0.0, is_causal=False)
-                    # print("FLASH worked")
                     '''Check this part'''
                     # row_out = row_out.transpose(1, 2).contiguous().view(B*C_dst, Gp, D)
                     row_out = row_out.transpose(1, 2).contiguous().view(B*C, Gp, D)
@@ -323,8 +303,6 @@ class AxialBlockLayer(nn.Module):
                     
         '''This is where flash attention ends'''
         
-            # import pdb
-            # pdb.set_trace()
         
         row_out = self.row_ln(row_in + row_out)
         x = row_out.view(B, C, Gp, D)                    # [B, C, G+1, D]
@@ -345,7 +323,6 @@ class AxialBlockLayer(nn.Module):
         genes   = x[:, :, 1:, :]                         # [B, K, G, D]
         G = genes.size(2)
         
-        # import pdb
         # pdb.set_trace()   
 
         # ---- Column attention over cells for each gene (CLS excluded) ----
@@ -370,8 +347,6 @@ class AxialBlockLayer(nn.Module):
         k = col_in
         v = col_in
         
-        # import pdb
-        # pdb.set_trace()
         
         mask_rect = cell_attn_mask.index_select(0, dst_idx)  # [C_dst, C_src]
         # A_hat = A_hat.index_select(0, dst_idx)
@@ -523,8 +498,6 @@ class AxialBlockLayer(nn.Module):
         ffn_out = self.ffn(ffn_in)
         ffn_out = self.ffn_ln(ffn_in + ffn_out)
         
-        # import pdb
-        # pdb.set_trace()
         
         '''newly added - we add new experiment here'''
         ffn_out = ffn_out.reshape(B*C_dst, Gp, D)
@@ -541,8 +514,6 @@ class AxialBlockLayer(nn.Module):
 class AxialTransformer_temp_fix(nn.Module):
     def __init__(self, d_model: int, n_heads: int, num_layers: int, dropout: float = 0.1):
         
-        # import pdb
-        # pdb.set_trace()
         
         super().__init__()
         self.layers = nn.ModuleList([
@@ -551,8 +522,6 @@ class AxialTransformer_temp_fix(nn.Module):
         ])
 
     def forward(self, x: torch.Tensor, cell_attn_mask: torch.Tensor, target_idx, A_hat, epoch, edge_idx, count) -> torch.Tensor:
-        # import pdb
-        # pdb.set_trace()
         
         for layer in self.layers:
             x = layer(x, cell_attn_mask, target_idx, A_hat, epoch, edge_idx, count)

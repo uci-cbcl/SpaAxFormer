@@ -74,8 +74,6 @@ def mclust_R(adata, num_cluster, modelNames='EEE', used_obsm='X_pca', random_see
     Clustering using the mclust algorithm.
     The parameters are the same as those in the R package mclust.
     """
-    # import pdb
-    # pdb.set_trace()
 
     np.random.seed(random_seed)
     import rpy2.robjects as robjects
@@ -139,8 +137,6 @@ def mclust_py(adata, num_cluster=7, used_obsm='X_pca', random_state=666):
 
 # create for both black and white
 def create_plot(adata, pos):
-    # import pdb
-    # pdb.set_trace()
     
     marker_gene_indices = [0,1]
     
@@ -209,8 +205,6 @@ def create_plot(adata, pos):
 
 def create_cluster_plot(adata, gt, pos, ARI, key='mclust', slice=None, slice_num=None, output_dir="results/run"):
     
-    # import pdb
-    # pdb.set_trace()
     
     # SPOT_SIZE = 200 - Visium
     '''200 - Visium, 300 - BC, 200-STARmap, MERFISH-50'''
@@ -229,7 +223,6 @@ def create_cluster_plot(adata, gt, pos, ARI, key='mclust', slice=None, slice_num
                             spot_size=SPOT_SIZE)
     
     # _sc_1[0].set_title("Ground Truth")
-    # print(f"figures/{data}/test/cluster_image_{data}_{slice}_{slice_num}_{epoch}_HVG_{HVG}_cell_embedding_{radius}_no_weighted_layer_8_contrastive_loss_08_02_mask_4_hybrid_CCC.png")
     # plt.savefig(f"figures/{data}/test/cluster_image_{data}_{slice}_{slice_num}_{epoch}_HVG_{HVG}_adjust_cell_embedding_{radius}_knn_10_gene_mask_no_weighted_layer_8_loss_08_02_mask_4_hybrid_CCC_GGG.png")
     # plt.savefig(f"figures/{data}/investigate/cluster_image_{data}_{slice}_{slice_num}_{epoch}_{key}_HVG_{HVG}_cell_embedding_{radius}_no_weighted_layer_8_08_02_mask_4_hybrid_all.png")
     
@@ -269,8 +262,6 @@ def create_cluster_plot(adata, gt, pos, ARI, key='mclust', slice=None, slice_num
 ''''''
 '''code from: https://github.com/JinmiaoChenLab/GraphST/blob/main/GraphST/utils.py'''
 def refine_label(adata, radius=50, key='label'):
-    # import pdb
-    # pdb.set_trace()
     
     n_neigh = radius
     new_type = []
@@ -302,8 +293,6 @@ def row_normalize(X, eps=1e-8):
 
 
 def plot_embedding(adata, key, slice=None, slice_num=None, output_dir="results/run"):
-    # import pdb
-    # pdb.set_trace()
     
     sc.pl.umap(
     adata,
@@ -353,8 +342,6 @@ def plot_embedding(adata, key, slice=None, slice_num=None, output_dir="results/r
 
 
 def comprehensive_evaluate_test(X_pred, gex, mask): 
-    # import pdb
-    # pdb.set_trace()
     
     
     pm = X_pred[mask]
@@ -366,8 +353,6 @@ def comprehensive_evaluate_test(X_pred, gex, mask):
     # pm = pm1
     # pm2 = pm1
     
-    # import pdb
-    # pdb.set_trace()
     
     test_mse = np.square(y_true - y_pred).mean()
     test_l1 = np.abs(y_true - y_pred).mean()    
@@ -418,9 +403,6 @@ def comprehensive_evaluate_test(X_pred, gex, mask):
     return test_l1, test_cos_sim, test_rmse
     
     
-    # print("Test MSE average: ", np.mean(test_mses))
-    # print("Test MSE std: ", np.std(test_mses))
-    # print("Test MSE range: ", np.max(test_mses) - np.min(test_mses))
 
         
 
@@ -442,8 +424,6 @@ def comprehensive_evaluate(cell_embedding, gex, mask, pos, lbl, logger = None, e
     # weighted_gene_emb = gex_normalized @ gene_embedding
     
     # emb = 0.8 * cell_embedding + 0.2 * weighted_gene_emb 
-    # import pdb
-    # pdb.set_trace()
     
 
     mean = cell_embedding.mean(axis=0, keepdims=True)
@@ -460,8 +440,6 @@ def comprehensive_evaluate(cell_embedding, gex, mask, pos, lbl, logger = None, e
     
     # X_pca = cell_embedding
     
-    # import pdb
-    # pdb.set_trace()
     
     pred_km = KMeans(n_clusters=NUM_CLUSTER, n_init="auto", random_state=0).fit_predict(X_pca)
     print("KMeans ARI:", adjusted_rand_score(gt, pred_km))
@@ -572,8 +550,6 @@ def comprehensive_evaluate(cell_embedding, gex, mask, pos, lbl, logger = None, e
     
     # create_plot(adata_all, pos)
     
-    # import pdb
-    # pdb.set_trace()
     
     key = "embedding"
     
@@ -584,8 +560,6 @@ def comprehensive_evaluate(cell_embedding, gex, mask, pos, lbl, logger = None, e
     
     Z = emb
     
-    # import pdb
-    # pdb.set_trace()
     
     print("NaN count:", np.isnan(Z).sum())
     '''Look into this'''
@@ -608,14 +582,10 @@ def comprehensive_evaluate(cell_embedding, gex, mask, pos, lbl, logger = None, e
     adata.obsm["spatial"] = pos
     
     
-    # import pdb
-    # pdb.set_trace()
     
     sc.pp.neighbors(adata, use_rep=key, random_state=666)
     sc.tl.umap(adata, min_dist=0.1, spread=1.0)
     
-    # import pdb
-    # pdb.set_trace()
     
     adata = mclust_R(adata, num_cluster=NUM_CLUSTER, used_obsm=key)
     
@@ -653,8 +623,6 @@ def comprehensive_evaluate(cell_embedding, gex, mask, pos, lbl, logger = None, e
     radius = 50
     
     if refinement:
-        # import pdb
-        # pdb.set_trace()
           
         new_type = refine_label(adata, radius, key='mclust')
         adata.obs['refined'] = new_type 
@@ -665,10 +633,7 @@ def comprehensive_evaluate(cell_embedding, gex, mask, pos, lbl, logger = None, e
     
     print("refined: \n", ARI_score_refined, NMI_score_refined)
     
-    # print(NMI_score, ARI_score)
     
-    # # import pdb
-    # # pdb.set_trace()
     
     create_cluster_plot(adata, gt, pos, ARI_score_refined, slice = slice, slice_num=slice_num, key='refined', output_dir=output_dir)
     

@@ -29,7 +29,6 @@ from spaformer.models import build_model
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 
-# 
 def save_cluster(sample_number, ari, ari_refine, nmi, nmi_refine, num_layers, max_epoch, output_dir="results/run"):
     save_path = output_dir
     
@@ -140,51 +139,6 @@ def save_imputation_avg(sample_number, l1s, cos_sims, rmses, num_layers, max_epo
 def pretrain(args, model, graphs, optimizer, max_epoch, device, scheduler, num_classes, loginfo, logger=None, mask=None, test_all=False, test_pe=False):
     test_id = -1
     logging.info("start training..")
-    # max_epoch = 20000
-    # max_epoch = 1000000
-    # max_epoch = 50000
-    # max_epoch = 7000
-    # max_epoch = 500
-    # max_epoch = 100
-    # max_epoch = 1000
-    # max_epoch = 1500
-    
-    # max_epoch = 500
-    
-    # max_epoch = 20
-    
-    # max_epoch = 1500    
-    
-    # max_epoch = 1500
-    
-    # max_epoch = 1500
-    # max_epoch = 1000
-    # max_epoch = 1
-    # max_epoch = 750
-    # max_epoch = 1500
-    
-    # max_epoch = 5
-    # max_epoch = 1
-    # max_epoch = 2
-    # max_epoch = 2
-    # max_epoch = 700
-    # max_epoch = 600
-    
-    # max_epoch = 100
-    
-    # max_epoch = 1000
-    
-    # max_epoch = 500
-    
-    # max_epoch = 100
-    # max_epoch = 125
-    # max_epoch = 
-    # max_epoch = 150
-    # max_epoch = 200
-    
-    # max_epoch = 1000
-    # max_epoch = 100
-    # max_epoch = 1
     epoch_iter = tqdm(range(max_epoch))
     graphs = [g.to(device) for g in graphs]
     val_list = []
@@ -196,14 +150,10 @@ def pretrain(args, model, graphs, optimizer, max_epoch, device, scheduler, num_c
         count = 0
         model.train()
         
-        # import pdb
-        # pdb.set_trace()
         
         for i in range(len(graphs)):
             graph = graphs[i]
             
-            # import pdb
-            # pdb.set_trace()
             
             '''Processed_X with masked'''
             # X = graph.ndata['input']
@@ -217,8 +167,6 @@ def pretrain(args, model, graphs, optimizer, max_epoch, device, scheduler, num_c
             '''We only need to work on bringing in training mask from outside - which comes here'''
             # mask_full_epoch = gain mask from here
             
-            # import pdb
-            # pdb.set_trace()
             
             if args.task == "imputation":
                 use_x, mask_in, mask_train = encoding_mask_nonzeros(X, mask, mask_ratio)
@@ -238,8 +186,6 @@ def pretrain(args, model, graphs, optimizer, max_epoch, device, scheduler, num_c
                     print("loss is None")
                     continue
                 
-                # import pdb
-                # pdb.set_trace()
                 
                 print("loss: ", loss)
                 optimizer.zero_grad()
@@ -248,8 +194,6 @@ def pretrain(args, model, graphs, optimizer, max_epoch, device, scheduler, num_c
                 optimizer.step()
                 
                 # if cache_payload:
-                #     # import pdb
-                #     # pdb.set_trace()
                 #     model.update_negative_cache(cache_payload)
             
         if scheduler is not None:
@@ -363,19 +307,15 @@ def main(args):
             eval_mask = eval_mask.to(device)
             # graphs[0].attn_gene_mask = graphs[0].attn_gene_mask.to(device)
             if args.task == "imputation":
-                # import pdb
-                # pdb.set_trace()
                 
                 set_random_seed(split_version)
             elif args.task == "cluster":
                 set_random_seed(split_version)
-            # import pdb
             # pdb.set_trace() 
             
             args.num_cells = num_cells
             args.num_features = num_features
             
-            # I am done up to here
 
             acc_list = []
             estp_acc_list = []
@@ -386,8 +326,6 @@ def main(args):
             model.to(device)
             
             if args.first_time:
-                # import pdb
-                # pdb.set_trace()
                 
                 torch.save(
                 {
@@ -439,8 +377,6 @@ def main(args):
             model.eval()
             run_name = None
             with torch.no_grad():
-                # import pdb
-                # pdb.set_trace()
                 if args.replicate_exp:
                     
                     run_name = (
@@ -520,7 +456,6 @@ def main(args):
             
             save_imputation_avg(sample_number, test_l1s, test_cos_sims, test_rmses, num_layers, max_epoch, output_dir=args.output_dir)
     
-# Press the green button in the gutter to run the script.
 if __name__ == "__main__":
     warnings.filterwarnings("ignore", category=DeprecationWarning) 
     warnings.filterwarnings("ignore", category=DeprecationWarning) 

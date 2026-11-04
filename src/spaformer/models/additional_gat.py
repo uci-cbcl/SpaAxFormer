@@ -25,8 +25,6 @@ class GAT_cls(nn.Module):
         negative_slope=0.2,
         eps=1e-8,
     ):
-        # import pdb
-        # pdb.set_trace()
         
         
         super().__init__()
@@ -64,8 +62,6 @@ class GAT_cls(nn.Module):
             out: [C_dst, D_out]
         """
     
-        # import pdb
-        # pdb.set_trace()
 
         C = x.shape[0]
         device = x.device
@@ -106,16 +102,11 @@ class GAT_cls(nn.Module):
     
     
     def segment_softmax_cls(self, scores, dst, epoch, num_nodes):
-        # import pdb
-        # pdb.set_trace()
         
         alpha = torch.zeros_like(scores)
 
         unique_dst = torch.unique(dst)
         for i in unique_dst:
-            # if epoch == 10:
-            #     import pdb
-            #     pdb.set_trace()
             
             mask = (dst == i)
             alpha[mask] = torch.softmax(scores[mask], dim=0)

@@ -199,8 +199,6 @@ def build_args():
 
 
 def preprocess_cluster(data_path, dataset_name, sample_number):
-    # import pdb
-    # pdb.set_trace()
     
     if dataset_name.lower() != 'starmap' and dataset_name.lower() != 'merfish':
         filter_num = filter_num_calc(data_path, sample_number)
@@ -212,8 +210,6 @@ def preprocess_cluster(data_path, dataset_name, sample_number):
     return adata
 
 def preprocess_impute(args, data_path, dataset_name, split_version):    
-    # import pdb
-    # pdb.set_trace()
     
     sample_dir = data_path + "/" + str(dataset_name)
     spatial_dir = sample_dir + "/spatial"
@@ -247,8 +243,6 @@ def preprocess_impute(args, data_path, dataset_name, split_version):
     
     # adata.obs['Region'] = adata.obs['Ground Truth']
     
-    # import pdb
-    # pdb.set_trace()
     
     adata_train = adata.copy()
     '''This should not matter - test mask will be replaced anyway'''
@@ -331,8 +325,6 @@ def create_spatial_attn_mask(spatial, k=None, radius=None, mode='Radius'):
     Returns:
         attn_mask: [C, C] torch.BoolTensor where True = masked, False = attend
     """
-    # import pdb
-    # pdb.set_trace()
     
     
     if isinstance(spatial, torch.Tensor):
@@ -462,8 +454,6 @@ def filter_adj_by_pca(
 
 
 def measure_pca_quantile(X_pca, adj):  
-    # import pdb
-    # pdb.set_trace()
     
                   
     pca_norm = F.normalize(
@@ -497,8 +487,6 @@ def measure_pca_quantile(X_pca, adj):
     print(f"50%: {q50:.3f}")
     print(f"75%: {q75:.3f}")
     
-    # import pdb
-    # pdb.set_trace()
     
 def measure_pca(X_pca, adjacency_matrix):
     
@@ -534,8 +522,6 @@ def measure_pca(X_pca, adjacency_matrix):
             ),
         )
     
-    # import pdb
-    # pdb.set_trace()
 
 '''Temporary function for use'''
 def adj_to_edge_index(adj, include_self=False):
@@ -547,16 +533,12 @@ def adj_to_edge_index(adj, include_self=False):
             edge_index[0] = dst
             edge_index[1] = src
     """
-    # import pdb
-    # pdb.set_trace()
     
     if not isinstance(adj, torch.Tensor):
         adj = torch.tensor(adj, dtype=torch.bool)
         
     # adj.fill_diagonal_(False)
     
-    # import pdb
-    # pdb.set_trace()
 
     if include_self:
         adj = adj.clone()
@@ -583,8 +565,6 @@ def compute_gaussian_spatial_bias(coords, sigma=None):
     Returns:
         bias: [N, N] or [B, N, N] — to be added to attention logits
     """
-    # import pdb
-    # pdb.set_trace()
     
     if isinstance(coords, np.ndarray):
         coords = torch.from_numpy(coords).float()
@@ -600,8 +580,6 @@ def compute_gaussian_spatial_bias(coords, sigma=None):
     else:
         raise ValueError("coords must be of shape [N, 2] or [B, N, 2]")
     
-    # import pdb
-    # pdb.set_trace()
     
     return dists
 
@@ -617,8 +595,6 @@ def compute_gaussian_spatial_bias(coords, sigma=None):
 
 # code modified from: https://github.com/liuwei-cs/SpaGIC/blob/main/SpaGIC/utils.py
 def Noise_Cross_Entropy(emb, adj):  
-    # import pdb
-    # pdb.set_trace()
     
     N = adj.shape[0]
     mask_self = torch.eye(N, dtype=torch.bool, device=adj.device)
@@ -641,8 +617,6 @@ def Noise_Cross_Entropy(emb, adj):
 # code modified from: https://github.com/liuwei-cs/SpaGIC/blob/main/SpaGIC/utils.py
 # Calculate cosine similarity.
 def cosine_sim_tensor(emb):
-    # import pdb
-    # pdb.set_trace()
     
     N = emb.shape[0]
     
@@ -661,8 +635,6 @@ def Noise_Cross_Entropy_anchor_only(emb_pool, len_anchor_idx, pos_mask, tau=1.0,
     anchor_idx: [B]        B=5 indices of anchors inside the pool (0..K-1)
     pos_mask : [B, K]      True where candidate j is a positive (neighbor) of anchor i
     """
-    # import pdb
-    # pdb.set_trace()
     
     
     K, D = emb_pool.shape
@@ -675,8 +647,6 @@ def Noise_Cross_Entropy_anchor_only(emb_pool, len_anchor_idx, pos_mask, tau=1.0,
     anc  = pool[:len_anchor_idx]                                # [B,D]
     logits = (anc @ pool.T) / tau                          # [B,K]
     
-    # import pdb
-    # pdb.set_trace()
 
     # exclude self candidate (anchor compared to itself in the pool)
     self_mask = torch.zeros((B, K), dtype=torch.bool, device=device)
@@ -713,8 +683,6 @@ def weighted_spatial_contrastive(
     Positives = spatial neighbors (adj_sub), weighted by cosine similarity.
     Denominator = all non-self candidates (standard multi-positive InfoNCE denominator).
     """
-    # import pdb
-    # pdb.set_trace()
     
     device = emb_pool.device
     K, D = emb_pool.shape
@@ -736,9 +704,6 @@ def weighted_spatial_contrastive(
     if valid.sum() == 0:
         return torch.tensor(0.0, device=device, dtype=emb_pool.dtype)
     
-    # if epoch == 10:
-    #     import pdb
-    #     pdb.set_trace()
 
     # cosine similarity (without /tau) for weights
     cos = anc @ z.T                                  # [B, K], in [-1,1]
@@ -784,8 +749,6 @@ def weighted_gene_column_contrastive(
     Then average over anchors and genes.
     """
     
-    # import pdb
-    # pdb.set_trace()
 
     device = emb_pool_gene.device
     dtype = emb_pool_gene.dtype
@@ -917,8 +880,6 @@ def create_gene_attn_mask(gt, mode="KNN", k=None, radius=None):
         attn_mask: torch.BoolTensor [G, G] where True=masked, False=attend
         edge_index: torch.LongTensor [2, E] for graph libs
     """
-    # import pdb
-    # pdb.set_trace()
 
     # ---- use HVG expression data ----
     if isinstance(gt, np.ndarray):
@@ -932,8 +893,6 @@ def create_gene_attn_mask(gt, mode="KNN", k=None, radius=None):
     
     feats = ad.AnnData(X=feats)
     
-    # import pdb
-    # pdb.set_trace()
     
     feats.var_names = [f"gene{i}" for i in range(feats.n_vars)]
     sc.pp.highly_variable_genes(feats, n_top_genes=100)
@@ -994,8 +953,6 @@ def create_gene_attn_mask(gt, mode="KNN", k=None, radius=None):
 
 # '''Creates attn mask using KNN with euclidean distance'''
 def create_knn_attn_mask(processed_X, pairwise):
-    # import pdb
-    # pdb.set_trace()
     
     '''for imputation'''
     '''for clustering'''
@@ -1042,8 +999,6 @@ def create_knn_attn_mask(processed_X, pairwise):
     
     attn_mask = attn_weights
     
-    # import pdb
-    # pdb.set_trace()
     
     return attn_mask  
 
@@ -1130,8 +1085,6 @@ def gene_sim_graph(gex, k=10):
     from sklearn.metrics.pairwise import cosine_similarity
     from sklearn.preprocessing import StandardScaler
     
-    # import pdb
-    # pdb.set_trace()
     
     gex_std = StandardScaler().fit_transform(gex)
     S = cosine_similarity(gex_std.T)
@@ -1163,8 +1116,6 @@ def _digitize(x: np.ndarray, bins: np.ndarray, side: str = "both") -> np.ndarray
     This is to spread values that equal plateau edges to uniformly distributed among plateaued value bins
     ex. [0,0,0,5,5,5,10,10] -> for 0 we have choice 1,2,3
     """
-    # import pdb
-    # pdb.set_trace()
     
     assert x.ndim == 1 and bins.ndim == 1
 
@@ -1199,7 +1150,6 @@ def compute_z_and_bins_from_logX(
       - n_bins >= 2 and bin 0 is reserved for zeros.
     """
     # import pdb 
-    # pdb.set_trace()
     
     X_log = np.asarray(X_log, dtype=np.float32)
     if X_log.min() < 0:
@@ -1242,8 +1192,6 @@ def compute_z_and_bins_from_logX(
         # Gives bins with continuous numbers with its quantiles
         bins = np.quantile(non_zero_vals, np.linspace(0, 1, n_bins - 1))
         
-        # import pdb
-        # pdb.set_trace()
 
         # Digitize non-zero entries to {1, ..., n_bins - 1}
         digits = _digitize(non_zero_vals, bins)
@@ -1271,8 +1219,6 @@ def compute_z_and_bins_from_logX_mask(
     exclude_mask: np.ndarray = None,
     eps: float = 1e-6,
 ):
-    # import pdb
-    # pdb.set_trace()
     
     X_log = np.asarray(X_log, dtype=np.float32)
 
@@ -1345,14 +1291,10 @@ def iter_cell_batches(
     - mode="neighbors":
         all_ids = base_ids ∪ global neighbors from adjacency_full.
     """
-    # import pdb
-    # pdb.set_trace()
     
     adjacency_full = adjacency_full.bool()
     n_cells = adjacency_full.shape[0]
     
-    # import pdb
-    # pdb.set_trace()
 
     if shuffle:
         idx = torch.randperm(n_cells, generator=generator, device=device)
@@ -1371,8 +1313,6 @@ def iter_cell_batches(
             neighbor_mask_global = adjacency_full[base_ids].any(dim=0)  # [n_cells]
             neighbor_ids = neighbor_mask_global.nonzero(as_tuple=False).squeeze(-1)
             
-            # import pdb
-            # pdb.set_trace()
             
             in_base = torch.isin(neighbor_ids, base_ids)
             neighbor_ids = neighbor_ids[~in_base]
@@ -1412,8 +1352,6 @@ def encoding_mask(gex, pc_train_from_rest=20, eval=False, first_time=False):
         Here M_in and M_train are equal
         As for clustering we do not need eval_mask
         '''
-        # import pdb
-        # pdb.set_trace()
         
         print("mask zero scheme used")
         
@@ -1433,8 +1371,6 @@ def encoding_mask(gex, pc_train_from_rest=20, eval=False, first_time=False):
         '''We want to retrieve fully_hidden and allowed none'''
         # notify_rows = fully_hidden & ~(allowed.any(dim=1))
         
-        # import pdb
-        # pdb.set_trace()
         
         notify_rows = fully_hidden
         
@@ -1444,8 +1380,6 @@ def encoding_mask(gex, pc_train_from_rest=20, eval=False, first_time=False):
         '''This code needs to be verified - at most - we need to fix it for all rows not just single row'''
         if fix_rows.any():
             
-            # import pdb
-            # pdb.set_trace()
             
             rows = fix_rows.nonzero(as_tuple=False).squeeze(1)
             '''We use argmax - meaning highest value - but we will think of making it to random later on'''
@@ -1481,8 +1415,6 @@ def encoding_mask_nonzeros(gex_zero_out, M_eval, pc_train_from_rest=20, eval=Fal
     Introduce mask here.
     gex corresponds to log-transformed input. Nothing else.
     '''
-    # import pdb
-    # pdb.set_trace()
     
     print("mask non zero scheme used")
     
@@ -1516,8 +1448,6 @@ def encoding_mask_nonzeros(gex_zero_out, M_eval, pc_train_from_rest=20, eval=Fal
     '''This code needs to be verified - at most - we need to fix it for all rows not just single row'''
     if fix_rows.any():
         
-        # import pdb
-        # pdb.set_trace()
         
         rows = fix_rows.nonzero(as_tuple=False).squeeze(1)
         '''We use argmax - meaning highest value - but we will think of making it to random later on'''
@@ -1535,8 +1465,6 @@ def encoding_mask_nonzeros(gex_zero_out, M_eval, pc_train_from_rest=20, eval=Fal
         gex already applies M_Eval and zero-ed out
     '''
     
-    # import pdb
-    # pdb.set_trace()
     
     M_in = M_in.to(device=gex_zero_out.device, dtype=torch.bool)
       
@@ -1577,7 +1505,6 @@ def prepare_dataset(args, dataset_name, sample_number, pc, split_version=0, data
     # name = "Barista_seq"
     # name = "Merfish"
     
-    # data_path = f'/home/clee51/data/{name}'
     
     if not os.path.exists(cache_path):
         os.makedirs(cache_path, exist_ok=True)
@@ -1638,10 +1565,8 @@ def prepare_dataset(args, dataset_name, sample_number, pc, split_version=0, data
     
     '''Up to here - clustering task regular preprocessing'''
     
-    # data_path = "/home/clee51/projects/scBi-Former/SpaFormer/spaformer/bench"
     # sample_number = "DLPFC_151673"
     
-    # data_dir = os.path.join("/home/clee51/data/xenium/" , "DLPFC_tissue")
     '''how I did originally for our purpose'''
     # adata = ad.read_h5ad(os.path.join(f"{data_path}", f"data", f"{sample_number}", f"processed_data.h5ad"))
     
@@ -1659,8 +1584,6 @@ def prepare_dataset(args, dataset_name, sample_number, pc, split_version=0, data
         adata = preprocess_cluster(data_path, dataset_name, sample_number)
     
 
-    # import pdb
-    # pdb.set_trace()
     
     
     gex = adata.X
@@ -1670,8 +1593,6 @@ def prepare_dataset(args, dataset_name, sample_number, pc, split_version=0, data
     '''Create Evaluation Mask - Here 1 implies hidden''' 
     # pc = 50
     
-    # import pdb
-    # pdb.set_trace()
     
     '''For baseline comparsion, mute for now'''
     # masks = (np.random.rand(adata.shape[0], adata.shape[1]) < (pc/100)).astype(float)
@@ -1693,8 +1614,6 @@ def prepare_dataset(args, dataset_name, sample_number, pc, split_version=0, data
     
     # M_eval_idx = np.load(os.path.join(f"{data_path}", f"masks", f"{sample_number}", f"M_eval_idx_1.npy"))
     
-    # import pdb
-    # pdb.set_trace()
     
     '''This is use for clustering'''
     if args.task == "cluster":
@@ -1738,15 +1657,11 @@ def prepare_dataset(args, dataset_name, sample_number, pc, split_version=0, data
         maskedgex_fov = masked[fov==fovlist]
         mask_fov = masks[fov==fovlist]
         
-        # import pdb
-        # pdb.set_trace()
         
         '''This is where the code for bin should be'''
         if args.task == "imputation":
             Z, bins = compute_z_and_bins_from_logX_mask(groundtruth_fov, num_bins, exclude_mask=mask_fov)
         if args.task == "cluster":
-            # import pdb
-            # pdb.set_trace()
             Z, bins = compute_z_and_bins_from_logX(groundtruth_fov, num_bins)
 
         gt.append(groundtruth_fov)
@@ -1773,8 +1688,6 @@ def prepare_dataset(args, dataset_name, sample_number, pc, split_version=0, data
 
 
 def graph_construction(args, ground_truth, masked, similarity_graph, spatial_graph, graph_type, standardscale, mask, pos, bin_val, z_val, label, sample_number, cache_path):
-    # import pdb
-    # pdb.set_trace()
     
     total_sum = 0
     edge_count = 0
@@ -1789,8 +1702,6 @@ def graph_construction(args, ground_truth, masked, similarity_graph, spatial_gra
     
     I think loss was log-transformed for SpaFormer. Let's think why this would be better and also continue for now.
     '''
-    # import pdb
-    # pdb.set_trace()
     
     
     logging.info("Loading preprocessed datasets.")
@@ -1800,8 +1711,6 @@ def graph_construction(args, ground_truth, masked, similarity_graph, spatial_gra
         '''In our terms, this is already log transformed'''
         # processed_X = torch.from_numpy(masked[i].todense()).float()
         
-        # import pdb
-        # pdb.set_trace
         
         '''For now, processed_X and gt is same - for our model'''
         processed_X = torch.from_numpy(masked[i]).float()
@@ -1809,8 +1718,6 @@ def graph_construction(args, ground_truth, masked, similarity_graph, spatial_gra
         bin_val = torch.from_numpy(bin_val[i])
         z_val = torch.from_numpy(z_val[i]).float()
         
-        # import pdb
-        # pdb.set_trace()
         
         
         # nc = torch.sum(processed_X, 1)
@@ -1820,8 +1727,6 @@ def graph_construction(args, ground_truth, masked, similarity_graph, spatial_gra
         # X_data = torch.log(X_data+1)
         spa = spatial_graph[i]
         
-        # import pdb
-        # pdb.set_trace()
         
         '''Visium - radius=150, BC - radius=150, Starmap - 450'''
         # decoder_neigh = create_spatial_attn_mask(pos[i], k=1, radius=450, mode='Hybrid')
@@ -1835,8 +1740,6 @@ def graph_construction(args, ground_truth, masked, similarity_graph, spatial_gra
         decoder_neigh = create_spatial_attn_mask(pos[i], k=1, radius=args.spatial_radius, mode='Hybrid')
         attn_mask = create_spatial_attn_mask(pos[i], k=1, radius=args.spatial_radius, mode='Hybrid')
         
-        # import pdb
-        # pdb.set_trace()
         
         '''Oirignally this is what I try'''
         # True - adj, False - not adj
@@ -1918,8 +1821,6 @@ def graph_construction(args, ground_truth, masked, similarity_graph, spatial_gra
         We might need to look into this!!!
         '''
         
-        # import pdb
-        # pdb.set_trace()
         
         # zero_matrix = np.zeros((gt.shape[0], gt.shape[0]))
         # adj_matrix =  (~attn_mask).float().detach().numpy()
@@ -1932,8 +1833,6 @@ def graph_construction(args, ground_truth, masked, similarity_graph, spatial_gra
         We do not use scaling of spatial coordinates yet for our context.
         '''
         
-        # import pdb
-        # pdb.set_trace()
         
         coords = torch.from_numpy(pos[i]).float()
         # scale = max(coordinates[:, 0].max() - coordinates[:, 0].min(), coordinates[:, 1].max() - coordinates[:, 1].min())
@@ -1964,8 +1863,6 @@ def graph_construction(args, ground_truth, masked, similarity_graph, spatial_gra
 
         graph.ndata['processed_X'] = processed_X
         
-        # import pdb
-        # pdb.set_trace()
         
         
         graph.ndata['gt'] = gt
@@ -1996,7 +1893,6 @@ def graph_construction(args, ground_truth, masked, similarity_graph, spatial_gra
         num_classes = num_features
         graphs.append(graph)
         
-    # print(edge_count/total_sum)
     return graphs, num_cells, num_features, num_classes, mask_new, label
 
 
@@ -2007,8 +1903,6 @@ def load_dataset(args, dataset_name, sample_number, pc, split_version=0, standar
     return graph_construction(args, gt, masked, adj, spatial, graph_type, standardscale, msk, loc, bin_val, z_score, label, sample_number, cache_path)
 
 def build_gene_pca_embeddings(X_hvg, n_components=20):
-    # import pdb
-    # pdb.set_trace()
     
     pca = PCA(n_components=n_components)
     gene_emb = pca.fit_transform(X_hvg)
@@ -2022,8 +1916,6 @@ def batch_gene_positive_index(gene_emb_batch, adj_sub):
     adj_sub:
         Boolean KNN mask between anchor and anchor+ its neighbors, shape: [B, K]
     '''
-    # import pdb
-    # pdb.set_trace()
     
     B, K = adj_sub.shape
 
@@ -2080,7 +1972,6 @@ def batch_gene_positive_indices(gene_emb_batch, adj_sub, alpha=5.0, k=3):
     # v = gene_sim != -1e9
     # gene_v = gene_sim[v].detach().cpu()
     # hist = torch.histc(gene_v, bins=20, min=1.0, max=1.0)
-    # print(hist)
     
     w = w.masked_fill(~candidate_mask, -1e9)
 
@@ -2306,8 +2197,6 @@ class NormLayer(nn.Module):
 '''load different ST dataset'''
 def load_DLPFC(root_dir='data', section_id='151507'):
     # 151507, ..., 151676 12 in total
-    # import pdb
-    # pdb.set_trace()
     
     ad = sc.read_visium(path=os.path.join(root_dir, str(section_id)), count_file=section_id+'_filtered_feature_bc_matrix.h5', load_images=True)
     ad.var_names_make_unique()
@@ -2318,20 +2207,15 @@ def load_DLPFC(root_dir='data', section_id='151507'):
     
     Ann_df = pd.read_csv(os.path.join(root_dir, section_id,
             section_id + '_truth.txt'), sep='\t', header=None, index_col=0)
-    # import pdb
-    # pdb.set_trace()
     
     Ann_df.columns = ['Ground Truth']
     ad.obs['Region'] = Ann_df.loc[ad.obs_names, 'Ground Truth'].astype('category')
     keep_bcs = ad.obs.dropna().index
     ad = ad[keep_bcs].copy()    
-    # print(ad.obs)
     return ad
 
 '''BC(Breast Cancer) data - 20 clusters'''
 def load_BC(root_dir='data', section_id='section1'):
-    # import pdb
-    # pdb.set_trace()
     
     # section1
     ad = sc.read_visium(path=os.path.join(root_dir, section_id), count_file=section_id+'_filtered_feature_bc_matrix.h5', load_images=True)
@@ -2348,8 +2232,6 @@ def load_BC(root_dir='data', section_id='section1'):
 
 '''STARmap data - 7 clusters'''
 def load_mVC(root_dir='data', section_id = 'STARmap_20180505_BY3_1k.h5ad'):
-    # import pdb
-    # pdb.set_trace()
     
     ad = sc.read(os.path.join(root_dir, section_id))
     ad.var_names_make_unique()
@@ -2358,8 +2240,6 @@ def load_mVC(root_dir='data', section_id = 'STARmap_20180505_BY3_1k.h5ad'):
     return ad
 
 def load_Merfish(root_dir='data', section_id='MERFISH_0.04.h5ad'):
-    # import pdb
-    # pdb.set_trace()
     
     ad = sc.read(os.path.join(root_dir, section_id))
     ad.var_names_make_unique()
@@ -2370,8 +2250,6 @@ def load_Merfish(root_dir='data', section_id='MERFISH_0.04.h5ad'):
 
 def filter_num_calc(data_path, slice_num):
     '''Here we autoset filter_nzr = 0.14'''
-    # import pdb
-    # pdb.set_trace()
     
     if str(slice_num) in ['151507', '151508', '151509', '151510', '151669', '151670', '151671', '151672', '151673', '151674', '151675', '151676', 'MA']:
         adata = load_DLPFC(root_dir=data_path, section_id=slice_num)
@@ -2393,8 +2271,6 @@ def filter_num_calc(data_path, slice_num):
     return 150
 
 def initialize(data_path, data_name, gene_min_count, preprocessing=True, hvgs = 3000):
-    # import pdb
-    # pdb.set_trace()
     
     
     if data_name in ['151507', '151508', '151509', '151510', '151669', '151670', '151671', '151672', '151673', '151674', '151675', '151676']:
@@ -2402,8 +2278,6 @@ def initialize(data_path, data_name, gene_min_count, preprocessing=True, hvgs = 
         # adata_.obs['Ground Truth'] = adata_.obs['Ground Truth']
         # adata_ori_ = adata_
         
-        # import pdb
-        # pdb.set_trace()
         if preprocessing:
             # Normalization
             sc.pp.filter_genes(adata_, min_counts=gene_min_count)
@@ -2416,8 +2290,6 @@ def initialize(data_path, data_name, gene_min_count, preprocessing=True, hvgs = 
         else:
             sc.pp.filter_genes(adata_, min_counts=gene_min_count)
     elif data_name in ['section1']:
-        # import pdb
-        # pdb.set_trace()
         
         adata_ = load_BC(root_dir=data_path, section_id=data_name)
         # adata_.obs['Ground Truth'] = adata_.obs['Region']
@@ -2448,7 +2320,5 @@ def initialize(data_path, data_name, gene_min_count, preprocessing=True, hvgs = 
     else:
         print("exception in data name")
         exit(-1)
-    # import pdb
-    # pdb.set_trace()
         
     return adata_
