@@ -47,15 +47,6 @@ def set_imitate_seed(seed):
 def get_current_lr(optimizer):
     return optimizer.state_dict()["param_groups"][0]["lr"]
 
-# "zebra_data_create_width_hard_100_lam_10_5_3" 
-# "zebra_data_create_width_100_lam_5_5" - one we used
-
-# "concentric_circle_r_width_5_lam_10_5_3"
-# "concentric_circle_r_width_5_lam_10_5_7" - one we used
-
-# 2_spiral_shape_complete_lam_5_5.h5ad
-# "2_spiral_shape_hard_a_2_5_turns_lam_20_10_5" - one we used
-
 def objective_metadata(args):
     components = ["gep"]
 
@@ -74,30 +65,10 @@ def objective_metadata(args):
 def build_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=0)
-    
-    '''We want to test on Zebra Dataset first - with modest numbers'''
-    
-    '''Clustering'''
-    # parser.add_argument("--dataset", type=str, default= "Visium")
-    # parser.add_argument("--data_path", type=str, default="/home/clee51/data/Visium/BC")
-    
+        
     parser.add_argument("--dataset", type=str, required=True)
     parser.add_argument("--data_path", "--data-root", type=str, required=True)
-    
-    # parser.add_argument("--dataset", type=str, default= "Merfish")
-    # parser.add_argument("--data_path", type=str, default="/home/clee51/data/Merfish")
-    
-    '''Gene Imputation'''
-    # parser.add_argument("--dataset", type=str, default= "Stereo_seq")
-    # parser.add_argument("--data_path", type=str, default="/home/clee51/data/Stereo_seq")
-    
-    # parser.add_argument("--dataset", type=str, default= "Slide_seq_V2")
-    # parser.add_argument("--data_path", type=str, default="/home/clee51/data/Slide_seq_V2")
-    
-    '''all'''
-    # parser.add_argument("--dataset", type=str, default= "Visium")
-    # parser.add_argument("--data_path", type=str, default="/home/clee51/data/xenium/DLPFC_tissue")
-    
+        
     parser.add_argument("--standardscale", type=int, default=250)
     parser.add_argument("--device", type=int, default=0)
     parser.add_argument("--max_epoch", "--epochs", type=int, required=True,
@@ -112,7 +83,7 @@ def build_args():
                         help="number of hidden attention heads")
     parser.add_argument("--num_out_heads", type=int, default=1,
                         help="number of output attention heads")
-    parser.add_argument("--num_layers", type=int, default=3,
+    parser.add_argument("--num_layers", type=int, default=4,
                         help="number of hidden layers")
     parser.add_argument("--num_hidden", type=int, default=64,
                         help="number of hidden units")
@@ -137,10 +108,7 @@ def build_args():
     parser.add_argument("--aggr", type=str, default="SAGE", choices=["GAT", "SAGE"])
     parser.add_argument("--loss_fn", type=str, default="mse", choices=["mse", "wmse"])
     parser.add_argument("--optimizer", type=str, default="adamw")
-    
-    # parser.add_argument("--cls", action="store_true", default=True)
-    
-    
+        
     parser.add_argument("--no_cls", dest="cls", action="store_false")
     parser.set_defaults(cls=True)
     
@@ -148,7 +116,6 @@ def build_args():
     parser.set_defaults(gepc=True)
     
     parser.add_argument("--contrast", action="store_true", default=False)
-    parser.add_argument("--gat", action="store_true", default=False)
     parser.add_argument("--replicate_exp", action="store_true", default=False)
     parser.add_argument("--first_time", action="store_true", default=False)
     
@@ -159,7 +126,6 @@ def build_args():
     parser.add_argument("--latent_dim", type=int, default=20)
     parser.add_argument("--log_path", type=str, default="results/run/logs")
     parser.add_argument("--cache_path", type=str, default='./preprocessed')
-    # ablation study
     parser.add_argument("--pe", type=str, default=None, choices=['lap', 'signnet', 'bin', 'mlp', 'sinu', 'None', None])
     parser.add_argument("--test_pe", action="store_true")
     parser.add_argument("--pe_aug", action="store_true")
@@ -186,17 +152,6 @@ def build_args():
         parser.error("--load_model requires --model-path")
     return args
 
-'''For gene imputation'''
-# "/home/clee51/data/xenium/DLPFC_tissue"
-# "/home/clee51/data/Stereo_seq"
-# "/home/clee51/data/Slide_seq_V2"
-
-'''For clustering performance'''
-# "/home/clee51/data/xenium/DLPFC_tissue" - Visium
-# "/home/clee51/data/Visium/BC" - Visium
-# "/home/clee51/data/STARmap/STARmap_mouse_visual_cortex" - StarMap
-
-
 
 def preprocess_cluster(data_path, dataset_name, sample_number):
     
@@ -214,25 +169,6 @@ def preprocess_impute(args, data_path, dataset_name, split_version):
     sample_dir = data_path + "/" + str(dataset_name)
     spatial_dir = sample_dir + "/spatial"
     
-    # import pdb
-    # pdb.set_trace()
-        
-    # adata = sc.read_visium(sample_dir,count_file=f"{dataset_name}_filtered_feature_bc_matrix.h5")
-    
-    # adata.var_names_make_unique()
-    # adata.raw = adata.copy()
-    # adata.var["mt"] = adata.var_names.str.startswith("MT-")
-    # sc.pp.calculate_qc_metrics(adata, qc_vars=["mt"], inplace=True)
-    
-    
-    # sc.pp.normalize_total(adata)
-    # sc.pp.log1p(adata)
-    # sc.pp.highly_variable_genes(adata, flavor="seurat", n_top_genes=3000)
-    
-    # import pdb
-    # pdb.set_trace()
-    
-
     split_dir = data_path + "/data_split/" +  str(dataset_name)
     
     test_mask_path = split_dir + "/split_" + str(split_version) + "_test_mask.npz"
@@ -246,14 +182,8 @@ def preprocess_impute(args, data_path, dataset_name, split_version):
     
     adata_train = adata.copy()
     '''This should not matter - test mask will be replaced anyway'''
-    # adata_train.X[test_mask] = 0
-    
-    # import pdb 
-    # pdb.set_trace()
-    
+    # adata_train.X[test_mask] = 0    
     # adata = adata.copy()[:, adata.var["highly_variable"]]
-    
-    # # ???
     # adata = adata_train.copy()
     
     return adata, adata_train.X.copy(), test_mask
@@ -583,15 +513,6 @@ def compute_gaussian_spatial_bias(coords, sigma=None):
     
     return dists
 
-    # if sigma is None:
-    #     sigma = dists.mean().item()
-
-    # bias = - (dists ** 2) / (2 * sigma ** 2)
-    # return bias
-
-# def compute_liner_bias(coords):
-#     squared_distance = ((spatial_i[:, 0] - spatial_j[:, 0])**2 + (spatial_i[:, 1] - spatial_j[:, 1])**2).sqrt()
-
 
 # code modified from: https://github.com/liuwei-cs/SpaGIC/blob/main/SpaGIC/utils.py
 def Noise_Cross_Entropy(emb, adj):  
@@ -906,75 +827,13 @@ def create_gene_attn_mask(gt, mode="KNN", k=None, radius=None):
             nbrs_i = indices[i, 1:]  # exclude self
             attn_mask[i, torch.tensor(nbrs_i)] = False
             edge_index += [[i, j] for j in nbrs_i]
-
-    # elif mode == "Radius":
-    #     nbrs = NearestNeighbors(radius=radius).fit(feats)
-    #     _, indices = nbrs.radius_neighbors(feats)
-    #     for i, nbrs_i in enumerate(indices):
-    #         nbrs_i = nbrs_i[nbrs_i != i]
-    #         attn_mask[i, torch.tensor(nbrs_i)] = False
-    #         edge_index += [[i, j] for j in nbrs_i]
-
-    # elif mode == "Hybrid":
-    #     # nbrs_r = NearestNeighbors(radius=radius).fit(feats)
-    #     # _, indices_r = nbrs_r.radius_neighbors(feats)
-    #     # nbrs_k = NearestNeighbors(n_neighbors=k+1).fit(feats)
-    #     # _, indices_k = nbrs_k.kneighbors(feats)
-        
-        
-    #     nbrs_r = NearestNeighbors(radius=radius).fit(feats)
-    #     distances, indices = nbrs_r.kneighbors(feats, return_distance=True)
-    #     nbrs_k = NearestNeighbors(n_neighbors=k+1).fit(feats)
-    #     _, indices_k = nbrs_k.kneighbors(feats)
-    #     # gene_graph_KNN_list = [pd.DataFrame(zip([it]*indices[it].shape[0], indices[it], distances[it])) for it in range(indices.shape[0])]
-
-    #     import pdb
-    #     pdb.set_trace()
-        
-    #     for i, (nbrs_i_r, nbrs_i_k) in enumerate(zip(nbrs_r, indices_k)):
-    #         nbrs_i_r = nbrs_i_r[nbrs_i_r != i]
-    #         nbrs_i_k = nbrs_i_k[1:]  # remove self
-    #         if len(nbrs_i_r) >= k:
-    #             final_nbrs = nbrs_i_r
-    #         else:
-    #             extra = [x for x in nbrs_i_k if x not in nbrs_i_r][:k-len(nbrs_i_r)]
-    #             final_nbrs = list(nbrs_i_r) + extra
-    #         if len(final_nbrs) > 0:
-    #             attn_mask[i, torch.tensor(final_nbrs)] = False
-    #             edge_index += [[i, j] for j in final_nbrs]
-
-    # edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
-    
-    # import pdb
-    # pdb.set_trace()
     
     return attn_mask
 
 
 # '''Creates attn mask using KNN with euclidean distance'''
 def create_knn_attn_mask(processed_X, pairwise):
-    
-    '''for imputation'''
-    '''for clustering'''
-    # k = 8
-    
     k = 6
-    
-    # k = 25
-    
-    # k = 128
-    
-    # k = 64
-    
-    # k = 256
-    
-    # k = 32
-    
-    # k = 12
-    
-    # k = 4
-    
-    # k = 100
     
     C, G = processed_X.shape
     knn_dist, knn_idx = torch.topk(pairwise, k=k+1, largest=False)
@@ -1003,10 +862,7 @@ def create_knn_attn_mask(processed_X, pairwise):
     return attn_mask  
 
 
-def filter_outer_positives(coords, z, r_small=150, r_large=450, sim_threshold=0.5):
-    import pdb
-    pdb.set_trace()
-    
+def filter_outer_positives(coords, z, r_small=150, r_large=450, sim_threshold=0.5):  
     coords_np = coords.cpu().numpy()
     
     # Step 1: Compute pairwise distances (Euclidean)
@@ -1041,11 +897,7 @@ def filter_adjacency_by_similarity(adj_450: torch.Tensor, z: torch.Tensor, sim_t
 
     Returns:
         filtered_adj: [N, N] BoolTensor or FloatTensor — filtered adjacency matrix.
-    """
-    import pdb
-    pdb.set_trace()
-    
-    
+    """   
     N = z.shape[0]
 
     # Step 1: Normalize embeddings for cosine sim
@@ -1060,10 +912,7 @@ def filter_adjacency_by_similarity(adj_450: torch.Tensor, z: torch.Tensor, sim_t
     return mask.float() if adj_450.dtype == torch.float32 else mask
 
 
-def filter_adj_topk_sim(adj_450, z, top_k=15):
-    import pdb
-    pdb.set_trace()
-    
+def filter_adj_topk_sim(adj_450, z, top_k=15):  
     z = F.normalize(z, dim=1)
     cos_sim = torch.matmul(z, z.T)  # [N, N]
     
@@ -1318,6 +1167,7 @@ def iter_cell_batches(
             neighbor_ids = neighbor_ids[~in_base]
             all_ids = torch.cat([base_ids, neighbor_ids], dim=0)
             
+            '''introduces extra negatives'''
             # if num_extra_neg > 0:
             #     # Exclude current batch nodes
             #     # import pdb
@@ -1497,88 +1347,16 @@ def prepare_dataset(args, dataset_name, sample_number, pc, split_version=0, data
     print("max_epoch: ", args.max_epoch)
     
     task = args.task
-    num_bins = args.num_bins
-    
-    # name = "2_spiral_shape"
-    # name = "concentric_circle_shape"
-    # name = "Zebra_Dataset"
-    # name = "Barista_seq"
-    # name = "Merfish"
-    
+    num_bins = args.num_bins    
     
     if not os.path.exists(cache_path):
-        os.makedirs(cache_path, exist_ok=True)
-    # Regenerate inputs; never read legacy prepared-data caches.
-    '''
-        Thoughts:
-            Should I introduce mask here? - We only create masks here and zero out mask values.
-            Before we zero out apply HVG + normalization
-            Also, we need to apply HVG and log transformation here before we mask as this will be the ground_truth for the data to learn.
-            When we create tokens - that's when we use masks.
-        '''
-    
-    '''This is for clustering task - just regular preprocessing'''
-    # if args.dataset.lower() == "visium":    
-    #     section_id = str(sample_number)    
-    #     input_dir = os.path.join('/home/clee51/data/xenium/DLPFC_tissue/', section_id)
-    #     adata_raw = sc.read_visium(path=input_dir, count_file=section_id + '_filtered_feature_bc_matrix.h5', load_images=True)
-    #     adata_raw.var_names_make_unique(join="++")
-        
-        
-    #     # read the annotation
-    #     Ann_df = pd.read_csv(os.path.join(input_dir,
-    #     section_id + '_truth.txt'), sep='\t', header=None, index_col=0)
-    #     Ann_df.columns = ['Ground Truth']
-    #     Ann_df[Ann_df.isna()] = "unknown"
-    #     adata_raw.obs['Region'] = Ann_df.loc[adata_raw.obs_names, 'Ground Truth'].astype('category')
-    #     '''We drop unkown data from here'''
-    #     adata_raw = adata_raw[adata_raw.obs['Region']!='unknown']
-        
-    #     # make spot name unique
-    #     adata_raw.obs_names = [x+'_'+section_id for x in adata_raw.obs_names]
-    # else:
-    #     adata_raw = ad.read_h5ad(f'{data_path}/{sample_number}.h5ad')
-        
-    # # import pdb
-    # # pdb.set_trace()
-    
-    # # adata = adata[adata.obs['fov'].isin(adata.obs['fov'].value_counts()[adata.obs['fov'].value_counts()>1000].index)]
-    
-    # sc.pp.filter_genes(adata_raw, min_counts=5)
-    # sc.pp.filter_cells(adata_raw, min_counts=5)
-    
-    # # gex = adata.X
-    
-    # # duplicate_genes = adata_raw.var.index[adata_raw.var.index.duplicated()]
-    # adata_raw = adata_raw[:, ~adata_raw.var.index.duplicated()]
-    # adata = adata_raw
-    
-    # '''Run with HVG - But this might not work well with Zebra Dataset (Need to check)'''
-    # sc.pp.highly_variable_genes(adata, flavor="seurat_v3", n_top_genes=5000)
-    
-    # # sc.pp.highly_variable_genes(adata, flavor="seurat_v3", n_top_genes=3000)
-    
-    # sc.pp.normalize_total(adata, target_sum=1e4)
-    # sc.pp.log1p(adata)
-    
-    # adata = adata[:, adata.var['highly_variable']]
-    
-    '''Up to here - clustering task regular preprocessing'''
-    
-    # sample_number = "DLPFC_151673"
-    
-    '''how I did originally for our purpose'''
-    # adata = ad.read_h5ad(os.path.join(f"{data_path}", f"data", f"{sample_number}", f"processed_data.h5ad"))
-    
-    '''This is for imputation task'''
+        os.makedirs(cache_path, exist_ok=True) 
     if args.task == "imputation":
         adata, masked, masks = preprocess_impute(args, data_path, sample_number, split_version)
         if not isinstance(masked,np.ndarray):
             masked = masked.toarray()
         if not isinstance(adata.X, np.ndarray):
             adata.X = adata.X.toarray()
-        # if dataset_name == "Visium" and task == "imputation":
-        #     masked = masked.toarray()
     elif args.task == "cluster":
         '''This is for clustering task'''
         adata = preprocess_cluster(data_path, dataset_name, sample_number)
@@ -1589,36 +1367,8 @@ def prepare_dataset(args, dataset_name, sample_number, pc, split_version=0, data
     gex = adata.X
     
     spa = adata.obsm["spatial"]
-    
-    '''Create Evaluation Mask - Here 1 implies hidden''' 
-    # pc = 50
-    
-    
-    '''For baseline comparsion, mute for now'''
-    # masks = (np.random.rand(adata.shape[0], adata.shape[1]) < (pc/100)).astype(float)
-    # all_zero = (np.sum(masks, 1)==0).astype(float).reshape(-1, 1)
-    # '''Also examine this part clearly as we switch masks'''
-    # masks = np.multiply(masks, 1-all_zero) +  np.multiply(np.ones_like(masks), all_zero)
-    # masks.astype(bool)
-    # masked = np.where(masks, 0.0, gex.todense())
-    # masked = csc_matrix(masked)
-    # masks = csc_matrix(masks)
-    
-    # import pdb
-    # pdb.set_trace()
-    
-    # masks = np.load(os.path.join(f"{data_path}", f"masks", f"{sample_number}", f"M_eval_mask_1.npy"))
-    
-    '''This is used for imputation'''
-    # masks = mask
-    
-    # M_eval_idx = np.load(os.path.join(f"{data_path}", f"masks", f"{sample_number}", f"M_eval_idx_1.npy"))
-    
-    
-    '''This is use for clustering'''
     if args.task == "cluster":
         masks = np.full((gex.shape), False)
-        '''maybe unnecssary?'''
         if dataset_name.lower() != 'starmap' and dataset_name.lower() != 'merfish':
             masked = np.where(masks, 0.0, gex.todense())
             gex = gex.toarray().astype(float)
@@ -1626,19 +1376,11 @@ def prepare_dataset(args, dataset_name, sample_number, pc, split_version=0, data
             masked = np.where(masks, 0.0, gex)
             gex = gex.astype(float) 
                     
-    
-# if dataset_name.lower() != 'starmap':
-#     gex = gex.toarray().astype(float)
-# else:
-#     gex = gex.astype(float)        
      
-    '''This will change for cosMX dataset'''
+    '''This will change for cosMX dataset with multiple FOVs'''
     adata.obs['fov'] = 0
     fovlist = adata.obs['fov']
-    
-    '''we can mute this for now - use for clustering'''
-    # label = adata.obs['Region'].astype('str')
-    
+      
     '''Imputation Use'''
     if args.task == "imputation":               
         label = None
@@ -1648,8 +1390,6 @@ def prepare_dataset(args, dataset_name, sample_number, pc, split_version=0, data
     '''This is processing spatial data'''
     for fov in tqdm(fovlist.unique()):
         x = pairwise_distances(spa[fovlist==fov], metric='euclidean')
-        # x = 1-(x-x.min())/(x.max()-x.min())
-        # np.fill_diagonal(x, 1e6)
         spatial.append(x)
         loc.append(spa[fovlist==fov])
     
@@ -1670,19 +1410,6 @@ def prepare_dataset(args, dataset_name, sample_number, pc, split_version=0, data
         z_val.append(Z)
         bin_val.append(bins)
         
-        # GEX Correlation
-        '''Need to examine what this code implies'''
-        # corr = np.corrcoef(maskedgex_fov.todense()).astype('float')#, rowvar=False)
-        
-        # np.fill_diagonal(corr, 0)
-        # corr = np.nan_to_num(corr)
-        # adj.append(corr)
-    '''This saves prepared dataset'''
-    # with open(f'{cache_path}/{dataset_name}_{sample_number}_{pc}pc_cache.pkl', 'wb') as f:
-    #     pickle.dump([gt, ps, adj, spatial, msk, loc, label], f) 
-    
-    '''adj represents similarity graph'''
-    
     return gt, ps, adj, spatial, msk, loc, bin_val, z_val, label
 
 
@@ -1694,39 +1421,21 @@ def graph_construction(args, ground_truth, masked, similarity_graph, spatial_gra
     graphs = []
     mask_new = []
     lbl = []
-    
-    '''
-    Think:
-    SpaFormer -> gene imputation -> what does this mean? (raw values or log-transformed values?)
-    Do we want to guess raw value? or log-transformed value?
-    
-    I think loss was log-transformed for SpaFormer. Let's think why this would be better and also continue for now.
-    '''
-    
-    
+     
     logging.info("Loading preprocessed datasets.")
     for i in tqdm(range(len(ground_truth))):        
-        '''Should we process masking here? - related to using log transformed I think. Using raw_gt or gt context.'''
-        
-        '''In our terms, this is already log transformed'''
-        # processed_X = torch.from_numpy(masked[i].todense()).float()
-        
-        
+    
         '''For now, processed_X and gt is same - for our model'''
         processed_X = torch.from_numpy(masked[i]).float()
         gt = torch.from_numpy(ground_truth[i]).float()
         bin_val = torch.from_numpy(bin_val[i])
         z_val = torch.from_numpy(z_val[i]).float()
         
-        
-        
-        # nc = torch.sum(processed_X, 1)
-        
-        '''Perform log transformation'''
-        # X_data = raw_X/(nc.unsqueeze(-1))*standardscale
-        # X_data = torch.log(X_data+1)
         spa = spatial_graph[i]
         
+        '''Here we adjust, different radius to process spatial neighbors
+            decoder_neigh, attn_mask goes in pair
+        '''
         
         '''Visium - radius=150, BC - radius=150, Starmap - 450'''
         # decoder_neigh = create_spatial_attn_mask(pos[i], k=1, radius=450, mode='Hybrid')
@@ -1750,140 +1459,44 @@ def graph_construction(args, ground_truth, masked, similarity_graph, spatial_gra
         X_pca = build_gene_pca_embeddings(gt, n_components=args.expression_pca_dim)
         # measure_pca(X_pca, adj)
         # measure_pca_quantile(X_pca, adj)
-        ''''create filter'''    
-        # adj_pca_filtered = filter_adj_by_pca(adj, X_pca, pca_threshold=0, allow_self=True)
-        # adj = filter_adj_by_pca(adj, X_pca, pca_threshold=0, allow_self=True)
-        
-        # import pdb
-        # pdb.set_trace()
-        
-        # torch.save(adj_pca_filtered.cpu(), f"checkpoint/adj_filtered.pt")
-        
-        # import sys
-        # sys.exit()     
-        
-        # print(torch.isnan(adj.float()).sum())
-        # print(adj.sum())
-        # print(adj.float().mean())
-        
-        # degrees = adj.sum(dim=1)
-
-        # print("min degree:", degrees.min())
-        # print("max degree:", degrees.max())
-        # print("mean degree:", degrees.float().mean())
-
-        
-        '''Try out with simple tactic'''
-        # C = gt.shape[0]
-        # adj = torch.ones((C, C), dtype=torch.bool)
-        
-        # attn_mask = create_spatial_attn_mask(pos[i], k=100, radius=0, mode='KNN')
-        # attn_mask = create_spatial_attn_mask(pos[i], k=1, radius=450, mode='Hybrid')
-        
-        # attn_mask = create_spatial_attn_mask(pos[i], k=10, radius=150, mode='KNN')
-        
-        
-        # attn_mask = create_spatial_attn_mask(pos[i], k=1, radius=450, mode='Hybrid')
-        
-        # attn_gene_mask = create_gene_attn_mask(gt.detach().cpu().numpy(), k=5, radius=None, mode='KNN')
-        '''This is gene mask'''
-        # attn_gene_mask = gene_sim_graph(processed_X.detach().cpu().numpy(),k=10)
-        # attn_gene_mask = create_gene_attn_mask(gt, k=5, radius=None, mode='KNN')
         mask_new.append(torch.from_numpy(mask[i]).bool())
         
-        # attn_mask = create_knn_attn_mask(gt, torch.from_numpy(spa))
-#         adj_0 = similarity_graph[i]
-#         adj_0 = np.abs(similarity_graph[i])
-        
-        # Create adjacency matrix
-#         adj_0 = (adj_0 > 0.8) * (spa>0.8)
-#         adj_0 = (((adj_0 > 0.85) + (spa>0.99))>0).astype('float')
-#         adj_0 = (spa>0.98).astype('float')
-#         adj_0 = (adj_0 > 0.84).astype('float')
-#         adj_0 = ((adj_0+spa)>1.8).astype('float')
-#         adj_0 = (tsne > 0.9) * (spa>0.85)
-        
-        '''
-        Think:
-        we need to think about this part
-        '''
-        # adj_I = np.eye(processed_X.shape[0])
         adj_I = np.eye(gt.shape[0])
         
-        
-        ''''
-        Think: 
-        for our case, we might need to compute based on distance.
-        We need to also think, if this implies we can attend to diagonal entries.
-        We should not be attending to diagonal entries.
-        Also, check this in SpaFormer literature
-        
-        We might need to look into this!!!
-        '''
-        
-        
-        # zero_matrix = np.zeros((gt.shape[0], gt.shape[0]))
-        # adj_matrix =  (~attn_mask).float().detach().numpy()
         adj_matrix = (~decoder_neigh).float().detach().numpy()
-        # graph = dgl.from_scipy(sparse.csr_matrix(zero_matrix))
         graph = dgl.from_scipy(sparse.csr_matrix(adj_matrix))
         graph = dgl.add_self_loop(graph)
-            
-        '''
-        We do not use scaling of spatial coordinates yet for our context.
-        '''
-        
-        
+               
         coords = torch.from_numpy(pos[i]).float()
-        # scale = max(coordinates[:, 0].max() - coordinates[:, 0].min(), coordinates[:, 1].max() - coordinates[:, 1].min())
-        # coordinates[:, 0] = (coordinates[:, 0] - coordinates[:, 0].min()) / scale
-        # coordinates[:, 1] = (coordinates[:, 1] - coordinates[:, 1].min()) / scale
-        
-        # coords = (coords - coords.mean(0)) / coords.std(0)
-        # spatial_bias = compute_gaussian_spatial_bias(coords)
-        
-        # import pdb
-        # pdb.set_trace()
         
         graph.ndata["adj"] = adj
-        # graph.ndata["adj_filtered"] = adj_pca_filtered
-        # graph.ndata["spatial_bias"] = spatial_bias
         graph.ndata["attn_mask"] = attn_mask
-        # graph.attn_gene_mask = attn_gene_mask
-        # graph.ndata["attn_gene_mask"] = attn_gene_mask
         graph.ndata["feat"] = processed_X
         graph.ndata["input"] = processed_X
         graph.ndata["bin_val"] = bin_val
         graph.ndata["z_val"] = z_val
-         
-        '''Here we add other properties that we need to utilize''' 
-
-        '''We will need this later'''
-#         graph.ndata['label'] = label
-
         graph.ndata['processed_X'] = processed_X
         
         
         
         graph.ndata['gt'] = gt
         graph.ndata["X_pca"] = X_pca
-        # graph.ndata['gt'] = torch.log(gt/(torch.sum(gt, 1).unsqueeze(-1))*standardscale+1)
-        # graph.ndata['size_factor'] = nc/standardscale
         graph.ndata['pos'] = coords
         
+        '''I think this should be deleted - as we do not use it'''
         
-        ''''This is for LPE positional encoding'''
-        if os.path.exists(f'{cache_path}/lap/{sample_number}_{i}.pkl'):
-            with open(f'{cache_path}/lap/{sample_number}_{i}.pkl', 'rb') as f:
-                lpe = pickle.load(f)
-        else:
-            if not os.path.exists(f'{cache_path}/lap'):
-                os.mkdir(f'{cache_path}/lap')
-            logging.info(f'Laplacian positional encoding not found for fov {i}. Start calculatng.')
-            lpe = dgl.laplacian_pe(graph, 10)
-            with open(f'{cache_path}/lap/{sample_number}_{i}.pkl', 'wb') as f:
-                pickle.dump(lpe, f)
-        lpe[torch.isnan(lpe)] = 0 
+        # ''''This is for LPE positional encoding'''
+        # if os.path.exists(f'{cache_path}/lap/{sample_number}_{i}.pkl'):
+        #     with open(f'{cache_path}/lap/{sample_number}_{i}.pkl', 'rb') as f:
+        #         lpe = pickle.load(f)
+        # else:
+        #     if not os.path.exists(f'{cache_path}/lap'):
+        #         os.mkdir(f'{cache_path}/lap')
+        #     logging.info(f'Laplacian positional encoding not found for fov {i}. Start calculatng.')
+        #     lpe = dgl.laplacian_pe(graph, 10)
+        #     with open(f'{cache_path}/lap/{sample_number}_{i}.pkl', 'wb') as f:
+        #         pickle.dump(lpe, f)
+        # lpe[torch.isnan(lpe)] = 0 
         
         '''For now we do not use it'''
         # graph.ndata['eigvec'] = lpe
@@ -1897,7 +1510,6 @@ def graph_construction(args, ground_truth, masked, similarity_graph, spatial_gra
 
 
 def load_dataset(args, dataset_name, sample_number, pc, split_version=0, standardscale=250, data_path='data', graph_type='homo', cache_path='./preprocessed'):
-    # Regenerate dataset inputs; Laplacian files use the caller-selected cache_path.
     gt, masked, adj, spatial, msk, loc, bin_val, z_score, label = prepare_dataset(args, dataset_name, sample_number, pc, split_version, data_path, cache_path)
 
     return graph_construction(args, gt, masked, adj, spatial, graph_type, standardscale, msk, loc, bin_val, z_score, label, sample_number, cache_path)
@@ -1968,11 +1580,7 @@ def batch_gene_positive_indices(gene_emb_batch, adj_sub, alpha=5.0, k=3):
     valid = candidate_mask.any(dim=1)
     
     gene_sim = gene_sim.masked_fill(~candidate_mask, -1e9)
-        
-    # v = gene_sim != -1e9
-    # gene_v = gene_sim[v].detach().cpu()
-    # hist = torch.histc(gene_v, bins=20, min=1.0, max=1.0)
-    
+      
     w = w.masked_fill(~candidate_mask, -1e9)
 
     topk_vals, topk_idx = torch.topk(gene_sim, k=k, dim=1)
@@ -2004,7 +1612,6 @@ def create_norm(name):
     elif name == "graphnorm":
         return partial(NormLayer, norm_type="groupnorm")
     else:
-#         return None
         return nn.Identity
 
 
@@ -2195,16 +1802,9 @@ class NormLayer(nn.Module):
         return self.weight * sub / std + self.bias
 
 '''load different ST dataset'''
-def load_DLPFC(root_dir='data', section_id='151507'):
-    # 151507, ..., 151676 12 in total
-    
+def load_DLPFC(root_dir='data', section_id='151507'):  
     ad = sc.read_visium(path=os.path.join(root_dir, str(section_id)), count_file=section_id+'_filtered_feature_bc_matrix.h5', load_images=True)
-    ad.var_names_make_unique()
-
-    # gt_dir = os.path.join(root_dir, section_id, 'gt')
-    # gt_df = pd.read_csv(os.path.join(gt_dir, 'tissue_positions_list_GTs.txt'), sep=',', header=None, index_col=0)
-    # ad.obs['original_clusters'] = gt_df.loc[:, 6]
-    
+    ad.var_names_make_unique()  
     Ann_df = pd.read_csv(os.path.join(root_dir, section_id,
             section_id + '_truth.txt'), sep='\t', header=None, index_col=0)
     
@@ -2217,7 +1817,6 @@ def load_DLPFC(root_dir='data', section_id='151507'):
 '''BC(Breast Cancer) data - 20 clusters'''
 def load_BC(root_dir='data', section_id='section1'):
     
-    # section1
     ad = sc.read_visium(path=os.path.join(root_dir, section_id), count_file=section_id+'_filtered_feature_bc_matrix.h5', load_images=True)
     ad.var_names_make_unique()
     
@@ -2275,8 +1874,6 @@ def initialize(data_path, data_name, gene_min_count, preprocessing=True, hvgs = 
     
     if data_name in ['151507', '151508', '151509', '151510', '151669', '151670', '151671', '151672', '151673', '151674', '151675', '151676']:
         adata_ = load_DLPFC(root_dir=data_path, section_id=data_name)
-        # adata_.obs['Ground Truth'] = adata_.obs['Ground Truth']
-        # adata_ori_ = adata_
         
         if preprocessing:
             # Normalization
@@ -2292,8 +1889,6 @@ def initialize(data_path, data_name, gene_min_count, preprocessing=True, hvgs = 
     elif data_name in ['section1']:
         
         adata_ = load_BC(root_dir=data_path, section_id=data_name)
-        # adata_.obs['Ground Truth'] = adata_.obs['Region']
-        # adata_ori_ = adata_
         if preprocessing:
             # Normalization
             sc.pp.filter_genes(adata_, min_counts=gene_min_count)
@@ -2309,8 +1904,6 @@ def initialize(data_path, data_name, gene_min_count, preprocessing=True, hvgs = 
     elif data_name in ['STARmap_20180505_BY3_1k.h5ad']:
         adata_ = load_mVC(root_dir=data_path, section_id=data_name)
         adata_.obs['Region'] = adata_.obs['original_clusters']
-        # Normalization
-        # sc.pp.highly_variable_genes(adata, flavor="seurat_v3", n_top_genes=3000)
         sc.pp.normalize_total(adata_, target_sum=1e4)
         sc.pp.log1p(adata_)
     elif data_name in ['MERFISH_0.04.h5ad','MERFISH_0.09.h5ad','MERFISH_0.14.h5ad','MERFISH_0.19.h5ad','MERFISH_0.24.h5ad']:

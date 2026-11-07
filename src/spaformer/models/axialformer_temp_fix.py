@@ -14,20 +14,6 @@ torch.backends.cuda.enable_flash_sdp(True)
 torch.backends.cuda.enable_mem_efficient_sdp(True)
 torch.backends.cuda.enable_math_sdp(True)
 
-
-# import pdb
-# pdb.set_trace()
-
-# try:
-#     from flash_attn.flash_attention import FlashMHA
-
-#     flash_attn_available = True
-# except ImportError:
-#     import warnings
-
-#     warnings.warn("flash_attn is not installed")
-#     flash_attn_available = False
-
 class CellGraphPropagation(nn.Module):
     def __init__(self, beta=0):
         super().__init__()
@@ -214,12 +200,7 @@ class AxialBlockLayer(nn.Module):
             batch_first=True,
         )
         
-        self.cls_ln = nn.LayerNorm(d_model)        
-
-        # self.graph_prop = CellGraphPropagation()
-        
-        # self.graph_prop = CellWeightGraphPropagation()
-        
+        self.cls_ln = nn.LayerNorm(d_model)                
 
     def forward(self, x: torch.Tensor, cell_attn_mask: torch.Tensor, target_idx, A_hat, epoch, edge_idx, count, tau=1) -> torch.Tensor:
         """
@@ -232,42 +213,21 @@ class AxialBlockLayer(nn.Module):
         assert D == self.d_model
         assert Gp >= 2, "Need CLS + at least 1 gene token"
         
-        
-        
-        '''This is also muted'''
         C_dst = target_idx.numel()
         dst_idx = torch.arange(C_dst, device=cell_attn_mask.device, dtype=torch.long)
         
         
         Gp = x.size(2)  # CLS + genes
-        # row_mask = torch.zeros(Gp, Gp, dtype=torch.bool, device=x.device)
-        # row_mask[1:, 0] = True
         
         # # # # ---- Row attention over (CLS + genes) within each cell ----
-        row_in = x.view(B * C, Gp, D)                    # [B*C, Gp, D]
-        '''This is with CLS'''
-        # row_out, _ = self.row_attn(row_in, row_in, row_in, attn_mask=row_mask, need_weights=False) # Not sure about this need_weights component
-        '''This is without CLS - we do not use this for flash attention. need_weights=False makes speed faster???'''
-        # row_out, _ = self.row_attn(row_in, row_in, row_in, need_weights=False) # Not sure about this need_weights component
-        
-        
-        '''
-        This is how we run flash attention. I need to revise the code little bit
-        check if CLS is used or not as well - Flash Attention do not run with mask
-        '''
-        # Todo: Give Error if attention  mask used
-        
+        row_in = x.view(B * C, Gp, D)                    # [B*C, Gp, D]     
         H = 1
         Dh = D // H
         
         # qkv = self.qkv(row_in[:C_dst, :, :])
         qkv = self.qkv(row_in)
         q, k, v = qkv.chunk(3, dim=-1)    
-        
-        # q = q.view(B*C_dst, Gp, H, Dh).transpose(1, 2).contiguous()
-        # k = k.view(B*C_dst, Gp, H, Dh).transpose(1, 2).contiguous()
-        # v = v.view(B*C_dst, Gp, H, Dh).transpose(1, 2).contiguous()
-        
+             
         q = q.view(B*C, Gp, H, Dh).transpose(1, 2).contiguous()
         k = k.view(B*C, Gp, H, Dh).transpose(1, 2).contiguous()
         v = v.view(B*C, Gp, H, Dh).transpose(1, 2).contiguous()
@@ -278,19 +238,12 @@ class AxialBlockLayer(nn.Module):
         v_ = v.to(torch.bfloat16)      
         
         
-        from torch.cuda.amp import autocast
-        
-        # This makes really fast probably: float16 + flash attention
-        
+        from torch.cuda.amp import autocast    
         try:
             with sdpa_kernel([SDPBackend.FLASH_ATTENTION]):
                 with autocast(dtype=torch.bfloat16):
                     row_out = F.scaled_dot_product_attention(q_, k_, v_, attn_mask=None, dropout_p=0.0, is_causal=False)
-                    '''Check this part'''
-                    # row_out = row_out.transpose(1, 2).contiguous().view(B*C_dst, Gp, D)
-                    row_out = row_out.transpose(1, 2).contiguous().view(B*C, Gp, D)
-                    # row_out = self.proj(row_out)
-        
+                    row_out = row_out.transpose(1, 2).contiguous().view(B*C, Gp, D)        
         except Exception as e:
             print("FLASH failed:", type(e).__name__, e)
                            
@@ -307,16 +260,6 @@ class AxialBlockLayer(nn.Module):
         row_out = self.row_ln(row_in + row_out)
         x = row_out.view(B, C, Gp, D)                    # [B, C, G+1, D]
         
-        # row_updated = row_in.clone()
-        # row_updated[:C_dst, :, :] = row_out
-        # row_out_updated = row_updated
-        
-        # row_out_updated = row_out
-        
-        # row_out_updated = row_out_updated.view(B, C, Gp, D)
-        
-        # x = row_out_updated
-        
         '''Newly added'''
         # # # # Split CLS and genes
         cls_tok = x[:, :, 0, :]                         # [B, K D]
@@ -326,194 +269,43 @@ class AxialBlockLayer(nn.Module):
         # pdb.set_trace()   
 
         # ---- Column attention over cells for each gene (CLS excluded) ----
-        # if epoch >= 50:
-        # col_in = x.permute(0, 2, 1, 3).contiguous()  # [B, G, Cp, D]
-        # col_in = col_in.view(B * Gp, C, D) 
-        # else:
         col_in = genes.permute(0, 2, 1, 3).contiguous()  # [B, G, C, D]
         col_in = col_in.view(B * G, C, D)                # [B*G, C, D]
-        
-        # import pdb
-        # pdb.set_trace()
-        
-        # cls_in = cls_tok.permute(0,2,1).contiguous()
-        # cls_in = cls_in.view(B*1, C, D)
-        
-        
-        # import pdb
-        # pdb.set_trace()
-        
+          
         q = col_in[:, :C_dst, :]
         k = col_in
         v = col_in
         
         
         mask_rect = cell_attn_mask.index_select(0, dst_idx)  # [C_dst, C_src]
-        # A_hat = A_hat.index_select(0, dst_idx)
-        
-        # q = col_in
-        # k = col_in
-        # v = col_in
-        
-        # import pdb
-        # pdb.set_trace()
-        
-        # mask_sq = cell_attn_mask
-        
-        # import pdb
-        # pdb.set_trace()
-    
+     
         col_out, _ = self.col_attn(q, k, v, attn_mask=mask_rect, need_weights=False)
         
         col_out = self.col_ln(col_in[:, :C_dst,:] + col_out)
-        
-        # col_out, _ = self.col_attn(q, k, v, attn_mask=mask_sq, need_weights=False) 
-        # col_out = self.col_ln(col_in + col_out)
         
         col_updated = col_in.clone()
         col_updated[:, :C_dst, :] = col_out
         col_out_updated = col_updated
         
-        # if epoch >= 50:
-        # col_out_updated = col_out_updated.view(B, Gp, C, D).permute(0, 2, 1, 3).contiguous()  # [B, C, Gp, D]
-        # else:
         col_out_updated = col_out_updated.view(B, G, C, D).permute(0, 2, 1, 3).contiguous()  # [B, C, G, D]
-        
-        # col_out_updated = col_out.view(B, Gp, C, D).permute(0, 2, 1, 3).contiguous()  # [B, C, Gp, D]
-        
-        # import pdb
-        # pdb.set_trace()
-        
-        # import pdb
-        # pdb.set_trace()
-        
-        # pick cls token 
-        # cls_in = col_out_updated[:, :, 0, :]
-        
-        # if epoch >= 50:    
-        #     q_c = cls_in[:, :C_dst, :]
-        #     k_c = cls_in
-        #     v_c = cls_in
-
-        #     cls_out, _ = self.cls_attn(q_c, k_c, v_c, attn_mask=mask_rect, need_weights=False)
-        #     cls_out = self.cls_ln(cls_in[:, :C_dst, :] + cls_out)
-            
-        #     cls_updated = cls_in.clone()
-        #     cls_updated[:, :C_dst, :] = cls_out
-        #     cls_out_updated = cls_updated
-
-        
-        # if epoch in {5, 75, 125} and count == 0:
-        #     self.col_attn.eval()
-        #     with torch.no_grad():
-        #         import pdb
-        #         pdb.set_trace()
-        #         col_out, attn_w = self.col_attn(
-        #         q, k, v,
-        #         attn_mask=mask_rect,
-        #         need_weights=True,
-        #         average_attn_weights=False
-        #         ) 
-        
-            # self.cls_attn.eval()
-            # with torch.no_grad():
-            #     col_out, attn_w = self.cls_attn(
-            #     q_c, k_c, v_c,
-            #     need_weights=True,
-            #     average_attn_weights=False
-            #     ) 
-                
-            #     import pdb
-            #     pdb.set_trace()
-                
-            #     col_out_2, attn_w_2 = self.cls_attn(
-            #     q_c, k_c, v_c,
-            #     attn_mask=mask_rect,
-            #     need_weights=True,
-            #     average_attn_weights=False
-            #     )   
-
-            #     print(attn_w.shape)  # e.g. [N, H, L, S] or [H, L, S] depending on your input form
-                
-            #     # import pdb
-            #     # pdb.set_trace()
-
-            #     # example: first batch item, first head
-            #     w = attn_w[0, 0]          # [L, S]
-            #     print(w.sum(dim=-1))      # should be ~1 per query row
-        
-        # cls_out = self.cls_ln(cls_in[:, :C_dst, :] + cls_out)
-        
-        # # cls_out = self.cls_ln(cls_in[:, :C_dst, :])
-        
-        # cls_updated = cls_in.clone()
-        # cls_updated[:, :C_dst, :] = cls_out
-        # cls_out_updated = cls_updated
-        
-        # import pdb
-        # pdb.set_trace()
-        
-        
-        # cls_out_updated = cls_out_updated.view(B, C, D).permute(0, 2, 1).contiguous()  # [B, C, G, D]
-        
-        # import pdb
-        # pdb.set_trace()
-
-        # Reattach CLS - CLS is already attached now
-        # if epoch >= 50:
-        #     x = torch.cat([cls_out_updated.unsqueeze(2), col_out_updated], dim=2)
-        # else:
-        #     x = torch.cat([cls_tok.unsqueeze(2), col_out_updated], dim=2)  
-        
-        # if epoch >= 50:
-        # x = col_out_updated
-        # else:
         x = torch.cat([cls_tok.unsqueeze(2), col_out_updated], dim=2)         # [B, C, G+1, D]
         # x = torch.cat([cls_out_updated.unsqueeze(2), col_out_updated], dim=2)         # [B, C, G+1, D] -> [B, G, C, D]
-        '''cls is also updated together with col_out'''
-        # x = col_out_updated
-        
-        # row_in = x.view(B * C, Gp, D)                    # [B*C, G+1, D]
-        # row_out, _ = self.row_attn(row_in, row_in, row_in) # Not sure about this need_weights component
-        # # need_weights=False
-        # row_out = self.row_ln(row_in + row_out)
-        # x = row_out.view(B, C, Gp, D)                    # [B, C, G+1, D]
-        
-        '''Was already muted (up to here)'''
-        
-        '''This is where concat should happen'''
         x_new = x.clone()   
         # x_graph_prop = x.clone()
-        
-        # x_sub = self.graph_prop(x.reshape(B*C, Gp, D), A_hat, C_dst)
-        # x_sub = self.graph_prop(x.reshape(B*C, G, D), A_hat, C_dst)
-        
-        # x_dst = x_sub
-        
-        # x_graph_prop[:, :C_dst, :, :] = x_sub.reshape(B, C_dst, Gp, D)
-        
         x_dst = x[:, :C_dst, :, :]  # (B, C_dst, Gp, D)
 
         ffn_in  = x_dst.reshape(B * C_dst * Gp, D)
         ffn_out = self.ffn(ffn_in)
         ffn_out = self.ffn_ln(ffn_in + ffn_out)
         
-        
-        '''newly added - we add new experiment here'''
         ffn_out = ffn_out.reshape(B*C_dst, Gp, D)
         x_new[:, :C_dst, :, :] = ffn_out.reshape(B, C_dst, Gp, D)
-        
-        # ffn_in  = x.reshape(B * C * Gp, D)
-        # ffn_out = self.ffn(ffn_in)
-        # ffn_out = self.ffn_ln(ffn_in + ffn_out)
-        # x = ffn_out.reshape(B, C, Gp, D)
-        
+            
         return x_new
 
 
 class AxialTransformer_temp_fix(nn.Module):
     def __init__(self, d_model: int, n_heads: int, num_layers: int, dropout: float = 0.1):
-        
         
         super().__init__()
         self.layers = nn.ModuleList([

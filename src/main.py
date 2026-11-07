@@ -32,13 +32,8 @@ logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=lo
 def save_cluster(sample_number, ari, ari_refine, nmi, nmi_refine, num_layers, max_epoch, output_dir="results/run"):
     save_path = output_dir
     
-    # metrics_dict = {"slice_number": f"{sample_number}_8_L_CCC_GGG_cell_emb_gene_mask_knn_10_hvgs_preprocessed_hvgs_3000_radius_150_epoch_1500", "ari": f"{ari}", "nmi": f"{nmi}"}
-    # metrics_dict = {"slice_number": f"{sample_number}_8_L_09_01_cell_emb_CCC_GGG_GCC_inner_08_02_hvgs_preprocessed_hvgs_3000_radius_150_epoch_1500", "ari": f"{ari}", "nmi": f"{nmi}"} 
-    # metrics_dict = {"slice_number": f"{sample_number}_8_L_MLP_10_0005_05_orth_late_InfoNCE_09_01_cell_emb_CCC_GGG_GCC_inner_08_02_hvgs_preprocessed_hvgs_3000_150_150_epoch_1500", "ari": f"{ari}", "nmi": f"{nmi}"}
-    
     
     metrics_dict = {
-                    # "slice_number": str(sample_number),
                     "slice_number": str(sample_number),
                     "ari": f"{ari}",
                     "ari_refine": f"{ari_refine}", 
@@ -53,20 +48,11 @@ def save_cluster(sample_number, ari, ari_refine, nmi, nmi_refine, num_layers, ma
     csv_path = Path(os.path.join(outdir, "ADEPT_cluster_result.csv"))
     df = pd.DataFrame([metrics_dict])
     df.to_csv(csv_path, mode="a", header=not csv_path.exists(), index=False)
-        
-    # with open(os.path.join(outdir, "config.json"), "w") as f:
-    #     json.dump(config_dict, f, indent=2)
-
 
 def save_cluster_avg(sample_number, ari_mean, ari_std, nmi_mean, nmi_std, num_layers, max_epoch, output_dir="results/run"):
     save_path = output_dir
     
-    # metrics_dict = {"slice_number": f"{sample_number}_8_L_CCC_GGG_Cell_emb_gene_mask_knn_10_hvgs_preprocessed_hvgs_3000_radius_150_epoch_1500", "ari_mean": f"{ari_mean:.3f}", "ari_std": f"{ari_std:.4f}",  "nmi_mean": f"{nmi_mean:.3f}", "nmi_std": f"{nmi_std:.4f}"}
-    # metrics_dict = {"slice_number": f"{sample_number}_8_L_09_01_cell_emb_CCC_GGG_GCC_CGG_inner_08_02_hvgs_preprocessed_hvgs_3000_radius_150_epoch_1500", "ari_mean": f"{ari_mean:.3f}", "ari_std": f"{ari_std:.4f}",  "nmi_mean": f"{nmi_mean:.3f}", "nmi_std": f"{nmi_std:.4f}"}
-    # metrics_dict = {"slice_number": f"{sample_number}_8_L_MLP_10_0005_05_orth_late_InfoNCE_09_01_cell_emb_CCC_GGG_GCC_inner_08_02_hvgs_preprocessed_hvgs_3000_150_150_epoch_1500", "ari_mean": f"{ari_mean:.3f}", "ari_std": f"{ari_std:.4f}",  "nmi_mean": f"{nmi_mean:.3f}", "nmi_std": f"{nmi_std:.4f}"}
-    
     metrics_dict = {
-                    # "slice_number": str(sample_number),
                     "slice_number": str(sample_number),
                     "ari_mean": f"{ari_mean:.3f}", 
                     "ari_std": f"{ari_std:.4f}",  
@@ -87,7 +73,6 @@ def save_cluster_avg(sample_number, ari_mean, ari_std, nmi_mean, nmi_std, num_la
 def save_imputation(sample_number, l1, cos_sim, rmse, num_layers, max_epoch, output_dir="results/run"):
     save_path = output_dir
     metrics_dict = {
-                    # "slice_number": str(sample_number),
                     "slice_number": str(sample_number),
                     "l1": f"{l1}", 
                     "cos_sim": f"{cos_sim}",
@@ -115,7 +100,6 @@ def save_imputation_avg(sample_number, l1s, cos_sims, rmses, num_layers, max_epo
     std_rmses = np.std(rmses)
     
     metrics_dict = {
-                    # "slice_number": str(sample_number),
                     "slice_number": str(sample_number),
                     "mean_l1s": f"{mean_l1s:.3f}", 
                     "std_l1s": f"{std_l1s:.4f}", 
@@ -154,29 +138,19 @@ def pretrain(args, model, graphs, optimizer, max_epoch, device, scheduler, num_c
         for i in range(len(graphs)):
             graph = graphs[i]
             
-            
             '''Processed_X with masked'''
             # X = graph.ndata['input']
             X = graph.ndata['gt']
             X_bins = graph.ndata['bin_val']
             z_val = graph.ndata['z_val']
             adj = graph.ndata['adj']
-            # adj_pca_filtered = graph.ndata['adj_filtered']
             X_pca = graph.ndata['X_pca']
-            
-            '''We only need to work on bringing in training mask from outside - which comes here'''
-            # mask_full_epoch = gain mask from here
-            
             
             if args.task == "imputation":
                 use_x, mask_in, mask_train = encoding_mask_nonzeros(X, mask, mask_ratio)
             elif args.task == "cluster":
-                '''This is for clustering'''
-                # mask_in, mask_train = encoding_mask(X, mask_ratio)
                 mask = torch.zeros_like(X, dtype=torch.bool)
                 mask_in, mask_train = encoding_mask(X, mask_ratio)
-                # use_x, mask_in, mask_train = encoding_mask_nonzeros(X, mask, mask_ratio)
-                
             epoch_generator = (torch.Generator(device=device).manual_seed(anchor_seed + epoch) if args.replicate_exp else None)
             
             for target_idx, cell_ids_cpu in iter_cell_batches(adjacency_full=adj, batch_size=batch_size, mode=mode, shuffle=True, generator=epoch_generator, device=device):
@@ -200,41 +174,6 @@ def pretrain(args, model, graphs, optimizer, max_epoch, device, scheduler, num_c
             scheduler.step()
 
         # epoch_iter.set_description(f"# Epoch {epoch}: train_loss: {loss.item():.4f}")
-        
-        '''
-        Examine Thoroughly if we will need this part
-        This requires graph[test_id].ndata['input'] for computing loss which is contary to how we compute loss
-        Need to think to suit this to our needs!
-        '''
-        # if (epoch + 1) % 1 == 0:
-        #     model.eval()
-        #     with torch.no_grad():
-        #         val_list.append(model.evaluate(graphs[test_id], graphs[test_id].ndata['input']))
-        #         print('Validation Loss(RMSE):', val_list[-1])
-                
-        #         if test_pe:
-        #             print('Test Loss(RMSE) with PE:', model.evaluate(graphs[test_id], graphs[test_id].ndata['input'], mode='test', mask=mask[test_id]))
-        #             print('Test Loss(RMSE) w.o PE:', model.evaluate(graphs[test_id], graphs[test_id].ndata['input'], mode='test', mask=mask[test_id], npe=True))
-        #         else:
-        #             print('Test Loss(RMSE):', model.evaluate(graphs[test_id], graphs[test_id].ndata['input'], mode='test', mask=mask[test_id]))
-                
-        #         if epoch>10 and min(val_list[:-1]) > val_list[-1]:
-        #             pass
-        #             # if not os.path.exists('ckpt'):
-        #             #     os.mkdir('ckpt')
-        #             # torch.save(model.state_dict(), f"ckpt/{loginfo}.ckpt")
-        #         elif min(val_list[-10:]) != min(val_list):
-        #             logging.info('Early Stop.')
-        #             break
-                    
-        #         if test_all:
-        #             perflist = []
-        #             for j in range(len(graphs)):
-        #                 perflist.append(model.evaluate(graphs[j], graphs[j].ndata['input'], mode='test', mask=mask[j]))
-        #                 print(f"fov {j} {perflist[-1]}")
-        #             print(sum(perflist)/len(perflist))
-                    
-    # model.load_state_dict(torch.load(f"ckpt/{loginfo}.ckpt"))
     return model
 
 
@@ -300,18 +239,15 @@ def main(args):
         
         for repeat_id in range(total):
             split_version = args.imputation_split[repeat_id] if args.task == "imputation" else repeat_id
-        # for split_version in [3]
             graphs, num_cells, num_features, num_classes, eval_mask, label = load_dataset(args, dataset_name, sample_number, pc, split_version, standardscale, data_path, cache_path=cache_path)
             '''Here we only let eval_mask to be single mask'''
             eval_mask = eval_mask[0]
             eval_mask = eval_mask.to(device)
-            # graphs[0].attn_gene_mask = graphs[0].attn_gene_mask.to(device)
             if args.task == "imputation":
                 
                 set_random_seed(split_version)
             elif args.task == "cluster":
                 set_random_seed(split_version)
-            # pdb.set_trace() 
             
             args.num_cells = num_cells
             args.num_features = num_features
@@ -363,10 +299,6 @@ def main(args):
                 model = pretrain(args, model, graphs, optimizer, max_epoch, device, scheduler, num_classes, loginfo, logger, eval_mask, test_pe=test_pe)
                 torch.set_num_threads(8) 
                 
-                # !!!
-                '''Why not GPU?
-                    I think because this is only inference we do not need CPU for our task.
-                '''
                 model = model.cpu()
 
             if load_model:
@@ -403,12 +335,7 @@ def main(args):
 
                     torch.save(payload, checkpoint_path)
                     
-                    # import pdb
-                    # pdb.set_trace()
-                    
-                    # checkpoint_path = f"/home/clee51/projects/scBi-Former/SpaFormer_renewed/SpaFormer/checkpoint/{run_name}/{sample_number}_{run_name}_{args.num_layers}_layers_150_epochs_attn_knn_pos_filter_neg_rest_w_cont_002_model.pt"
-                    
-                    # /home/clee51/projects/scBi-Former/SpaFormer_renewed/SpaFormer/checkpoint/contrastive
+                    '''create checkpoint_path at directory you want to save model checkpoint'''
                     
                     # checkpoint = torch.load(
                     #     checkpoint_path,

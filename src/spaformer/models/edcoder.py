@@ -11,20 +11,8 @@ import pandas as pd
 import math
 import pickle
 
-#from sklearn.cluster import KMeans
-#from sklearn.metrics.cluster import normalized_mutuscore
-#from sklearn.metrics import adjusted_rand_score
-#from sklearn.preprocessing import LabelEncoder
 
-# Bring in Model
-# This is for our model
 from .axialformer_temp_fix import AxialTransformer_temp_fix
-from .additional_gat import GAT_cls
-# from .axialformer_temp_fix_col_gat import 
-
-# from .gcn_simple import GraphDecoder, ResidualGraphDecoder, GraphDecoder2, GraphDecoder_mid, GraphDecoder_gate, GATDecoder
-
-# Add our model here as well (Look over Performer)
 
 from ..evaluation import comprehensive_evaluate
 from ..evaluation import comprehensive_evaluate_test
@@ -42,115 +30,6 @@ def setup_module(m_type, enc_dec, in_dim, d_emb_size, num_hidden, out_dim, num_l
         dropout = dropout
     )
     return mod
-
-# class MeanAct(nn.Module):
-#     """Mean activation class."""
-
-#     def __init__(self, softmax, standardscale):
-#         super().__init__()
-#         self.standardscale = standardscale
-#         self.softmax = softmax
-
-#     def forward(self, x):
-#         if not self.softmax:
-#             return torch.clamp(torch.exp(x), min=1e-5, max=1e6)
-#         else:
-#             return torch.softmax(x, 1) * self.standardscale
-
-# class DispAct(nn.Module):
-#     """Dispersion activation class."""
-
-#     def __init__(self):
-#         super().__init__()
-
-#     def forward(self, x):
-#         return torch.clamp(F.softplus(x), min=1e-4, max=1e4)
-
-# class ZINB(nn.Module):
-#     """ZINB Decoder.
-#     Parameters
-#     ----------
-#     input_dim : int
-#         dimension of input feature.
-#     n_z : int
-#         dimension of latent embedding.
-#     n_dec_1 : int optional
-#         number of nodes of decoder layer 1.
-#     n_dec_2 : int optional
-#         number of nodes of decoder layer 2.
-#     """
-
-#     def __init__(self, n_z, input_dim, standardscale, n_dec_1=128, n_dec_2=128, softmax=True, disp='gene_cell'):
-#         super().__init__()
-#         self.input_dim = input_dim
-#         self.dec_1 = nn.Linear(n_z, n_dec_1)
-#         self.dec_2 = nn.Linear(n_dec_1, n_dec_2)
-#         self.dec_mean = nn.Sequential(nn.Linear(n_dec_2, self.input_dim), MeanAct(softmax, standardscale))
-#         self.dec_pi = nn.Sequential(nn.Linear(n_dec_2, self.input_dim), nn.Sigmoid())
-#         self.disp = disp
-#         if disp == 'gene':
-#             self.dec_disp = nn.Parameter(torch.ones(input_dim))
-#         else:
-#             self.dec_disp = nn.Sequential(nn.Linear(n_dec_2, self.input_dim), DispAct())
-
-#     def forward(self, z):
-#         """Forward propagation.
-#         Parameters
-#         ----------
-#         z :
-#             embedding.
-#         Returns
-#         -------
-#         _mean :
-#             data mean from ZINB.
-#         _disp :
-#             data dispersion from ZINB.
-#         _pi :
-#             data dropout probability from ZINB4
-#         """
-        
-#         h = F.relu(self.dec_1(z))
-# #         h = F.relu(self.dec_2(h))
-#         _mean = self.dec_mean(h)
-#         if self.disp == 'gene':
-#             _disp = self.dec_disp.repeat(z.shape[0], 1)
-#         else:
-#             _disp = self.dec_disp(h)
-#         _pi = self.dec_pi(h)
-#         return _mean, _disp, _pi
-
-# class LatentModel(nn.Module):
-#     def __init__(self, h_dim, z_dim, kl_weight=1e-6, warmup_step=10000):
-#         super().__init__()
-#         self.hid_2mu = nn.Linear(h_dim, z_dim)
-#         self.hid_2sigma = nn.Linear(h_dim, z_dim)
-#         self.kl = 0
-#         self.kl_weight = kl_weight
-#         self.step_count = 0
-#         self.warmup_step = warmup_step
-    
-#     def kl_schedule_step(self):
-#         self.step_count += 1
-#         if self.step_count < self.warmup_step:
-#             self.kl_weight = self.kl_weight + (1e-2 - 1e-6) / self.warmup_step
-#         elif self.step_count == self.warmup_step:
-#             pass
-# #             self.step_count = 0
-# #             self.kl_weight = 1e-6
-        
-#     def forward(self, h):
-#         mu = self.hid_2mu(h)
-#         log_var = self.hid_2sigma(h)
-#         sigma = torch.exp(0.5 * log_var)
-#         epsilon = torch.randn_like(sigma)
-        
-#         if self.training:
-#             z = mu + sigma*epsilon
-#             self.kl = -0.5 * (1 + log_var - mu ** 2 - log_var.exp()).sum() / z.shape[0]  * self.kl_weight
-#             self.kl_schedule_step()
-#         else:
-#             z = mu
-#         return z
 
 class EntryTokenizer(nn.Module):
     def __init__(
@@ -301,11 +180,9 @@ class CellCLSDecoder(nn.Module):
         
         
         query_vecs = self.query_activation(self.gene2query(iden_emb))
-        # cls_e = cls_e.unsqueeze(2)  # (batch, embsize, 1)
         cls_e = cls_e.squeeze(0).unsqueeze(-1) #(batch, embsize, 1)
         # the pred gene expr values, # (batch, seq_len)
         pred_value = torch.bmm(self.W(query_vecs), cls_e).squeeze(-1)
-        # return dict(pred=pred_value)
         return pred_value
 
 @DeprecationWarning
@@ -379,69 +256,6 @@ class GlobalCLSNegativeCache(nn.Module):
 
         return neg_z, neg_ids
     
-
-# class GeneAttentionPool(nn.Module):
-#     def __init__(self, d_model: int, hidden: int = 64):
-#         super().__init__()
-#         self.score_mlp = nn.Sequential(
-#             nn.Linear(d_model, hidden),
-#             nn.Tanh(),
-#             nn.Linear(hidden, 1),
-#         )
-
-#     def forward(self, token_repr: torch.Tensor) -> torch.Tensor:
-#         # token_repr: [C, G, D]
-#         scores  = self.score_mlp(token_repr).squeeze(-1)  # [C, G]
-#         weights = scores.softmax(dim=1)                   # [C, G]
-#         cell_emb = torch.einsum("cg,cgd->cd", weights, token_repr)
-#         return cell_emb
-
-# class ZINBLoss(nn.Module):
-#     """ZINB loss class."""
-
-#     def __init__(self):
-#         super().__init__()
-
-#     def forward(self, x, mean, disp, pi, scale_factor, ridge_lambda=0.0):
-#         """Forward propagation.
-#         Parameters
-#         ----------
-#         x :
-#             input features.
-#         mean :
-#             data mean.
-#         disp :
-#             data dispersion.
-#         pi :
-#             data dropout probability.
-#         scale_factor : list
-#             scale factor of mean.
-#         ridge_lambda : float optional
-#             ridge parameter.
-#         Returns
-#         -------
-#         result : float
-#             ZINB loss.
-#         """
-#         eps = 1e-10
-#         scale_factor = scale_factor.unsqueeze(-1)
-#         mean = mean * scale_factor
-
-#         t1 = torch.lgamma(disp + eps) + torch.lgamma(x + 1.0) - torch.lgamma(x + disp + eps)
-#         t2 = (disp + x) * torch.log(1.0 + (mean / (disp + eps))) + (x * (torch.log(disp + eps) - torch.log(mean + eps)))
-#         nb_final = t1 + t2
-
-#         nb_case = nb_final - torch.log(1.0 - pi + eps)
-#         zero_nb = torch.pow(disp / (disp + mean + eps), disp)
-#         zero_case = -torch.log(pi + ((1.0 - pi) * zero_nb) + eps)
-#         result = torch.where(torch.le(x, 1e-8), zero_case, nb_case)
-
-#         if ridge_lambda > 0:
-#             ridge = ridge_lambda * torch.square(pi)
-#             result += ridge
-#         result = torch.mean(result)
-#         return result
-    
 class PreModel(nn.Module):
     def __init__(
             self,
@@ -463,14 +277,7 @@ class PreModel(nn.Module):
             mask_feature_rate: float = 0.5,
             encoder_type: str = "gat",
             decoder_type: str = "zinb",
-            
-            # d_emb_size : int = 100,
-            # d_emb_size : int = 256,
-            d_emb_size = 128,
-            # d_emb_size = 32,
-            # d_emb_size = 64,
-            # d_emb_size : int = 80,
-            
+            d_emb_size = 128,        
             loss_fn: str = "sce",
             alpha_l: float = 2,
             concat_hidden: bool = False,
@@ -488,32 +295,17 @@ class PreModel(nn.Module):
         
         
         super(PreModel, self).__init__()
-        '''This is used for corrupting nodes - not used in our case'''
-        # self._mask_node_rate = mask_node_rate
-        # self._mask_feature_rate = mask_feature_rate
-
         self._encoder_type = encoder_type
         self._decoder_type = decoder_type
         
-        '''we need to add this properly - temporarily'''
         self._d_emb_size = d_emb_size
-        
-        # self._output_hidden_size = num_hidden
-        # self._concat_hidden = concat_hidden
-        # self._drop_node_rate = drop_node_rate
-        # self._drop_model = DropNode(drop_node_rate)
         self._objective = objective
         
         
         # create cell token, gene token here
         
         '''Here we set r: 20'''
-        mask_e = nn.Parameter(torch.randn(self._d_emb_size))
-        # self.cell_token = CellTokenizer(in_cell, in_dim, d_emb_size, mask_e)
-        # self.gene_token = GeneTokenizer(in_cell, in_dim, d_emb_size, mask_e)
-        
-        '''Here we get all the values needed to create entry tokenizer'''
-                
+        mask_e = nn.Parameter(torch.randn(self._d_emb_size))        
         self.entry_token = EntryTokenizer(in_cell, in_dim, num_bins, d_emb_size)
         self.cls_token = nn.Parameter(torch.zeros(1, 1, 1, d_emb_size))
         nn.init.normal_(self.cls_token, mean=0.0, std=0.02)
@@ -530,17 +322,7 @@ class PreModel(nn.Module):
         else:
             enc_num_hidden = d_emb_size
             enc_nhead = nhead
-
-        # dec_in_dim = latent_dim
-        # dec_num_hidden = num_hidden // nhead_out if decoder_type in ("gat", "dotgat") else num_hidden 
-        # if objective in ['vae', 'maskvae']:
-        #     enc_out_dim = enc_num_hidden
-        # else:
-        #     enc_out_dim = latent_dim
-        
-        # import pdb
-        # pdb.set_trace()
-            
+       
         '''Build Encoder'''
         self.encoder = setup_module(
             m_type=encoder_type,
@@ -564,161 +346,17 @@ class PreModel(nn.Module):
             pe_aug = pe_aug,
             aggr = aggr,
         )
-        
-        # self.encoder = setup_module(
-        #     m_type=encoder_type,
-        #     enc_dec="encoding",
-        #     in_dim=in_dim,
-        #     num_hidden=enc_num_hidden,
-        #     out_dim=enc_out_dim,
-        #     num_layers=num_layers,
-        #     nhead=enc_nhead,
-        #     nhead_out=enc_nhead,
-        #     concat_out=True,
-        #     activation=activation,
-        #     dropout=feat_drop,
-        #     attn_drop=attn_drop,
-        #     negative_slope=negative_slope,
-        #     norm=norm,
-        #     latent_dim = latent_dim,
-        #     pe = pe,
-        #     cat_pe = cat_pe,
-        #     pe_aug = pe_aug,
-        #     aggr = aggr,
-        # )
-        
-        # # build decoder
-        # if decoder_type == 'zinb':
-        #     self.decoder = ZINB(dec_in_dim, in_dim, standardscale=standardscale)
-        # else:
-        
-        
-        # decoder should be MLP X2 if this is for our model else one MLP
-        
-        '''Build Decoder - in_dim refers to gene dim'''
-        self.decoder1 = nn.Sequential(
-            nn.Linear(d_emb_size, num_hidden),
-            nn.PReLU(),
-            nn.Dropout(feat_drop),
-            nn.Linear(num_hidden, in_dim),
-            nn.ReLU()
-        )
-        
-        self.decoder2 = nn.Sequential(
-            nn.Linear(d_emb_size, num_hidden),
-            nn.PReLU(),
-            nn.Dropout(feat_drop),
-            nn.Linear(num_hidden, in_cell),
-            nn.ReLU()
-        )
-        
+            
         self.decoderE = nn.Linear(d_emb_size, 1)
         self.decoderGene = GeneDecoder(d_emb_size, num_hidden)
-        # self.decoderGene = GeneDecoder(30, num_hidden)
         self.decoderCell = CellCLSDecoder(d_emb_size)
-        # self.gat = AdditiveGAT(d_emb_size, d_emb_size) 
-        self.gat = GAT_cls(d_emb_size, d_emb_size)
-        
-        # import pdb
-        # pdb.set_trace()
-        
-        # self.negative_cache = GlobalCLSNegativeCache(in_cell, d_emb_size) 
-    
-    
-        # self.decoderCell = CellCLSDecoder(30)
-        
-        # self.decoderCLS = GeneCLSDecoder(d_emb_size, num_hidden)
-        
-        # self.decoder1 = GraphDecoder(d_emb_size, num_hidden, in_dim)
-        # self.decoder1 = ResidualGraphDecoder(d_emb_size, num_hidden, in_dim)
-        # self.decoder1 = GraphDecoder2(d_emb_size,num_hidden,in_dim)
-        # self.decoder1 = GraphDecoder_mid(d_emb_size, num_hidden, in_dim)
-        # self.decoder1 = GraphDecoder_gate(d_emb_size, num_hidden, in_dim)
-        # self.decoder1 = GATDecoder(d_emb_size, num_hidden, in_dim)
-        # self.decoder1 = ResidualGATDecoder(d_emb_size, num_hidden, in_dim)
-        
-        # self.decoder2 = GraphDecoder(d_emb_size, num_hidden, in_cell)
-        
-        # self.decoder1 = nn.Sequential(
-            
-        # )
-        
-        # self.mse1 = nn.MSELoss()
-        # self.mse2 = nn.MSELoss()
-            
-            
-        # self.enc_mask_token = nn.Parameter(torch.zeros(1, in_dim))
-        
+                
         if objective in ['mask', 'ae']:
             self.encoder_to_decoder = nn.Identity()
-        # elif objective in ['maskvae', 'vae']:
-        #     self.encoder_to_decoder = LatentModel(enc_num_hidden, dec_in_dim)
-        
-        
-        # cell tokenize / gene tokenize
-        
-        
-        
-        
-#         if concat_hidden:
-#             self.encoder_to_decoder = nn.Linear(num_hidden * num_layers, dec_in_dim, bias=False)
-#         else:
-#             self.encoder_to_decoder = nn.Linear(dec_in_dim, dec_in_dim, bias=False)
-
-        # self.criterion = self.setup_loss_fn(loss_fn, alpha_l)
-        # self.zinb_loss = ZINBLoss()
 
     @property
     def output_hidden_dim(self):
         return self._output_hidden_size
-
-    def focused_mask(self, gex, pc, eval=False, first_time=False): 
-        # mask_folders = ["2-spiral", "zebra", "concentric"]       
-        cells = gex.shape[0]
-        genes = gex.shape[1]
-        
-        marker_gene_indices = [0,1]
-        all_gene_indices = np.arange(gex.shape[1])
-        non_marker_indices = np.setdiff1d(all_gene_indices, marker_gene_indices)
-        
-        total_masked_genes = gex.shape[0] * gex.shape[1] * pc
-        # num_marker = int(0.7 * total_masked_genes)
-        # num_house_keeping = int(0.3 * total_masked_genes)
-        
-        # num_marker = 30
-        # num_house_keeping = 10
-        
-        num_marker = 5000
-        num_house_keeping = 2500
-        
-        # num_marker = 2500
-        # num_house_keeping = 5000
-        
-        # num_marker = 3500
-        # num_house_keeping = 1500
-        
-        
-        mask_name = f"shared_mask_{num_marker}_{num_house_keeping}"
-
-        marker_cells = np.random.choice(cells, size=num_marker, replace=False)
-        marker_genes = np.random.choice(marker_gene_indices, size=num_marker, replace=True)
-        
-        non_marker_cells = np.random.choice(cells, size=num_house_keeping, replace=True)
-        non_marker_genes = np.random.choice(non_marker_indices, size=num_house_keeping, replace=True)
-        
-        
-        
-        masks = np.ones((cells, genes))
-        
-        masks[(marker_cells, marker_genes)]=0
-        masks[(non_marker_cells, non_marker_genes)]=0
-        
-        if eval:
-            
-            if first_time:
-                self.save_fixed_mask(masks, mask_name)
-            masks = self.load_fixed_mask(mask_name)
-        return masks
     
     def save_fixed_mask(self, masks, mask_name, mask_folder="data/masks"):
         np.save(os.path.join(mask_folder, mask_name), masks)
@@ -728,127 +366,6 @@ class PreModel(nn.Module):
         mask = np.load(os.path.join(mask_folder,f"{mask_name}.npy"))
         return mask
         
-    # def encoding_mask(self, gex_zero_out, M_eval, pc_train_from_rest=20, eval=False, first_time=False):
-    #     '''
-    #     Introduce mask here.
-    #     gex corresponds to log-transformed input. Nothing else.
-    #     '''
-    #     # import pdb
-    #     # pdb.set_trace()
-        
-    #     '''For real dataset'''
-    #     allowed = ~M_eval
-    #     draw = (torch.rand(allowed.shape, device=allowed.device) < pc_train_from_rest/100)
-    #     M_train = allowed & draw
-    #     M_in = M_eval | M_train
-        
-    #     fully_hidden = M_in.all(dim=1)
-        
-    #     fix_rows = fully_hidden & allowed.any(dim=1)
-        
-    #     '''We want to retrieve fully_hidden and allowed none'''
-    #     notify_rows = fully_hidden & ~(allowed.any(dim=1))
-        
-    #     if notify_rows.any():
-    #         print("M_Eval covered entire row")
-        
-    #     '''This code needs to be verified - at most - we need to fix it for all rows not just single row'''
-    #     if fix_rows.any():
-            
-    #         # import pdb
-    #         # pdb.set_trace()
-            
-    #         rows = fix_rows.nonzero(as_tuple=False).squeeze(1)
-    #         '''We use argmax - meaning highest value - but we will think of making it to random later on'''
-    #         first_allowed = allowed[rows].float().argmax(dim=1)
-    #         M_in[rows, first_allowed] = False
-    #         M_train[rows, first_allowed] = False
-        
-    #     # M_in = torch.tensor(M_in, dtype=torch.bool, device=gex.device)
-    #     # M_train = torch.tensor(M_train, dtype=torch.bool, device=gex.device)
-        
-    #     assert not (M_eval & M_train).any()  
-        
-    #     '''Check: 
-    #         Technically we can apply M_train and the result should be same as
-    #         gex already applies M_Eval and zero-ed out
-    #     '''
-        
-    #     M_in = M_in.to(device=gex_zero_out.device, dtype=torch.bool)    
-        
-    #     train_gex = gex_zero_out.masked_fill(M_train, 0.0)
-    #     # check_gex = gex_zero_out.masked_fill(M_in, 0.0)
-        
-    #     M_in = M_in.to(device=gex_zero_out.device, dtype=torch.float)
-        
-    #     return train_gex, M_in, M_train
-    
-    # def encoding_mask_nonzeros(self, gex_zero_out, M_eval, pc_train_from_rest=20, eval=False, first_time=False):
-    #     '''
-    #     Introduce mask here.
-    #     gex corresponds to log-transformed input. Nothing else.
-    #     '''
-    #     # import pdb
-    #     # pdb.set_trace()
-        
-    #     '''For real dataset'''
-    #     allowed = ~M_eval
-    #     nonzero_mask = (gex_zero_out != 0)
-    #     candidates = nonzero_mask & allowed
-        
-    #     candidate_indices = candidates.nonzero(as_tuple=False)
-        
-    #     num_to_pick = int(pc_train_from_rest / 100 * candidate_indices.shape[0])
-        
-    #     selected_indices = candidate_indices[torch.randperm(candidate_indices.shape[0])[:num_to_pick]]
-        
-    #     draw = torch.zeros_like(gex_zero_out, dtype=torch.bool)
-    #     draw[selected_indices[:, 0], selected_indices[:, 1]] = True
-    #     '''This should not change anything'''
-    #     M_train = allowed & draw
-    #     M_in = M_eval | M_train
-        
-    #     fully_hidden = M_in.all(dim=1)
-        
-    #     fix_rows = fully_hidden & allowed.any(dim=1)
-        
-    #     '''We want to retrieve fully_hidden and allowed none'''
-    #     notify_rows = fully_hidden & ~(allowed.any(dim=1))
-        
-    #     if notify_rows.any():
-    #         print("M_Eval covered entire row")
-        
-    #     '''This code needs to be verified - at most - we need to fix it for all rows not just single row'''
-    #     if fix_rows.any():
-            
-    #         # import pdb
-    #         # pdb.set_trace()
-            
-    #         rows = fix_rows.nonzero(as_tuple=False).squeeze(1)
-    #         '''We use argmax - meaning highest value - but we will think of making it to random later on'''
-    #         first_allowed = allowed[rows].float().argmax(dim=1)
-    #         M_in[rows, first_allowed] = False
-    #         M_train[rows, first_allowed] = False
-        
-    #     # M_in = torch.tensor(M_in, dtype=torch.bool, device=gex.device)
-    #     # M_train = torch.tensor(M_train, dtype=torch.bool, device=gex.device)
-        
-    #     assert not (M_eval & M_train).any()  
-        
-    #     '''Check: 
-    #         Technically we can apply M_train and the result should be same as
-    #         gex already applies M_Eval and zero-ed out
-    #     '''
-        
-    #     M_in = M_in.to(device=gex_zero_out.device, dtype=torch.bool)    
-        
-    #     train_gex = gex_zero_out.masked_fill(M_train, 0.0)
-    #     # check_gex = gex_zero_out.masked_fill(M_in, 0.0)
-        
-    #     M_in = M_in.to(device=gex_zero_out.device, dtype=torch.float)
-        
-    #     return train_gex, M_in, M_train
-    
     def laplacian_loss(self, H, adj):
         """
         H: [N, C] - cell embeddings
@@ -943,10 +460,6 @@ class PreModel(nn.Module):
         Returns:
             scalar torch.Tensor loss
         """
-        
-        import pdb
-        pdb.set_trace()
-
         # 1. Normalize embeddings for cosine similarity
         Z = F.normalize(Z, dim=1)
 
@@ -991,8 +504,6 @@ class PreModel(nn.Module):
         pos_idx, valid = batch_gene_positive_index(X_pca, adj_sub)
         
         if valid.sum() == 0:
-            import pdb
-            pdb.set_trace()
             return torch.tensor(0.0, device=device, dtype=cls_out.dtype)
 
         
@@ -1058,17 +569,7 @@ class PreModel(nn.Module):
         valid = pos_mask.any(dim=1)
         if valid.sum() == 0:
             return torch.tensor(0.0, device=device, dtype=emb_pool.dtype)
-        
-        # if epoch == 10:
-        #     import pdb
-        #     pdb.set_trace()
-
-        # cosine similarity (without /tau) for weights
-        # turn cosine into weights in [0,1]
-        # Option: sigmoid centered at 0: w = sigmoid(alpha * cos)
-        # import pdb
-        # pdb.set_trace()
-        
+           
         w = torch.sigmoid(alpha * gene_sim)
 
         # only weight positives; non-positives get weight 0 in numerator
@@ -1081,6 +582,7 @@ class PreModel(nn.Module):
         num_terms = (logits + logw).masked_fill(~pos_mask, neg_inf)
         log_num = torch.logsumexp(num_terms[valid], dim=1)
         
+        '''Using negative cache'''
         # if self.negative_cache.ready():
         #     # print("cache entered")
         #     # import pdb
@@ -1155,7 +657,6 @@ class PreModel(nn.Module):
         neg_mask = (~pos_candidate_mask) & (~self_mask) 
         
         denom_mask = pos_mask | neg_mask
-        # denom_mask = ~self_mask
 
         valid = pos_mask.any(dim=1)
         if valid.sum() == 0:
@@ -1809,21 +1310,14 @@ class PreModel(nn.Module):
         return loss_per_anchor[valid].mean()
     
     
-    # @torch.no_grad()
-    # def update_negative_cache(self, cache_payload):
-    #     self.negative_cache.update(
-    #         cls_out=cache_payload["cls_out"],
-    #         cell_ids=cache_payload["cell_ids"],
-    #         B=cache_payload["B"],)
+    @torch.no_grad()
+    def update_negative_cache(self, cache_payload):
+        self.negative_cache.update(
+            cls_out=cache_payload["cls_out"],
+            cell_ids=cache_payload["cell_ids"],
+            B=cache_payload["B"],)
 
-    def forward(self, args, g, X, X_pca, X_bins, z_val, mask_in, mask_train, cell_ids_cpu, target_idx, epoch, count):
-        # if self._objective in ['mask', 'maskvae']:
-            # should I introduce mask here?
-            
-            # use_g, use_x, (mask_nodes, keep_nodes) = self.encoding_mask_noise(g, x)
-        # else:
-        
-        
+    def forward(self, args, g, X, X_pca, X_bins, z_val, mask_in, mask_train, cell_ids_cpu, target_idx, epoch, count): 
         requires_cls = args.encoder == "axialformer_temp_fix"
 
         if requires_cls and not args.cls:
@@ -1833,7 +1327,6 @@ class PreModel(nn.Module):
         
         is_cls = args.cls
         is_contrast = args.contrast
-        is_gat = args.gat
         is_gepc = args.gepc
         
         '''This is where we set the training objective'''
@@ -1843,50 +1336,7 @@ class PreModel(nn.Module):
         mse1 = nn.MSELoss()
         mse2 = nn.MSELoss()
         self.BCE_loss = nn.BCEWithLogitsLoss()
-        
-        
-        
-        # pc = 3
-        
-        # pc = 5
-        '''This is imputation setting - wit zero and nonzero entries'''
-        # pc = 4
-        
-        # pc = 10
-        
-        # pc = 45
-        
-        # pc = 16
-        
-        # pc = 80
-        
-        # pc = 20
-        
-        # pc = 20
-        
-        # pc = 16
-        
-        # pc = 3
-        
-        # import pdb
-        # pdb.set_trace()
-            
-        ''''use_x implies masked_gex'''
-        '''This is for imputation'''
-        
-        '''This mask generation could change'''
-        
-        # if args.task == "imputation":
-            # use_x, mask_in, mask_train = self.encoding_mask_nonzeros(X, eval_mask, pc)
-        # elif args.task == "cluster":
-        #     '''This is for clustering'''
-        #     use_x, mask_in, mask_train = self.encoding_mask(X, eval_mask, pc)
-            
-        '''This is where we call forward function -> to create actual embeddings given mask_in, bin_val, Z_val'''
-        
-        
-        '''adjacency matrix - might be better to pass in adj from main.py'''
-        
+                
         adj = g.ndata["adj"]
         pos_mask = g.ndata["attn_mask"]
         # adj_pca_filtered = g.ndata["adj_filtered"]
@@ -1929,15 +1379,10 @@ class PreModel(nn.Module):
         
                 
         entry_iden_emb, tokens = self.entry_token(cell_ids_cpu, bin_batch, z_batch, mask_in_batch)    # C, G, D_model
-        B = 1
-        # x = tokens.unsqueeze(0) #B, C, G, D_model where B = 1
-        
+        B = 1   
         C,G,D = tokens.shape
         C_dst = target_idx.numel()
         
-        '''check'''
-        # if is_gat:
-        #     A_sub.fill_diagonal_(False)
         A_sub_pre_edge = A_sub[:C_dst, :]
         '''We let diagonal true for now'''
         edge_idx = adj_to_edge_index(A_sub_pre_edge)
@@ -1976,11 +1421,6 @@ class PreModel(nn.Module):
             # Genes output for reconstruction (exclude CLS)
             genes_out = x[:, :, 1:, :]                                          # [C,G,D]
        
-        '''This is tested module'''
-        if is_gat:
-            x = self.gat(cls_out.squeeze(0), edge_idx, C_dst, epoch)
-            x = x.unsqueeze(0)
-            
         X_pred = self.decoderGene(genes_out[:, :C_dst, :, :]).squeeze(-1).squeeze(0) 
         X_pred_batch = X_pred  
         
@@ -2009,376 +1449,22 @@ class PreModel(nn.Module):
         if is_gepc:
             masked_batch_cls_preds = X_pred_cell_batch[mask_train_batch]
             cell_loss = F.mse_loss(masked_batch_cls_preds, masked_batch_targets)
-            
-        '''This needs fix'''
-        # if  (epoch >=100) and is_contrast:
-        # if  (epoch >=125) and is_contrast:
-        # if  (epoch >=150) and is_contrast:
-        # if epoch >= 50 and is_contrast:
-        # if (epoch >= 25) and is_contrast:
-        # if (epoch >=100) and is_contrast:  
-        # if (epoch >= 75) and is_contrast:
         if is_contrast:
             
             pos_candidate_mask = A_sub[:C_dst, :]
-            # pos_pca_candidate_mask = A_sub_pca_filtered[:C_dst, :]
-            
-            # contrastive_loss = self.batch_pca_knn_InfoNCE(cls_out.squeeze(0), X_pca_batch, pos_candidate_mask, tau=1)
-            # pos_candidate_mask
             contrastive_loss = self.weighted_spatial_gene_sim_contrastive(cls_out.squeeze(0), X_pca_batch, cell_ids_cpu, C_dst, pos_candidate_mask, epoch)
-            # pos_candidiate_mask
-            # contrastive_loss = self.weighted_spatial_gene_sim_contrastive_pca_thres_neg(cls_out.squeeze(0), X_pca_batch, cell_ids_cpu, C_dst, pos_pca_candidate_mask, epoch, negative_pca_threshold=0)
-            
-            # contrastive_loss = self.weighted_spatial_gene_sim_contrastive_neg_not_knn(cls_out.squeeze(0), X_pca_batch, cell_ids_cpu, C_dst, pos_candidate_mask, pos_pca_candidate_mask, epoch)
-            
-            # contrastive_loss = self.weighted_spatial_gene_sim_contrastive_neg_no_knn_thres(cls_out.squeeze(0), X_pca_batch, cell_ids_cpu, C_dst, pos_candidate_mask, pos_pca_candidate_mask, epoch, negative_pca_threshold=0)
-            
-            # contrastive_loss = self.batch_supcon_loss_pca_filter_negatives_thres(cls_out.squeeze(0), X_pca_batch, pos_candidate_mask, pos_pca_candidate_mask, negative_pca_threshold=0)
-            
             cache_payload = {"cls_out":cls_out.squeeze(0).detach(),"cell_ids": cell_ids_cpu.detach(), "B": C_dst}
-            
-            # contrastive_loss = self.batch_supcon_loss(cls_out.squeeze(0), pos_candidate_mask)
-            
-            # contrastive_loss = self.batch_supcon_gene_sim_loss(cls_out.squeeze(0), X_pca_batch, pos_candidate_mask)
-            
-            # contrastive_loss = weighted_spatial_contrastive(cls_out.squeeze(0), C_dst, pos_candidate_mask, epoch)
-                        
-            # contrastive_loss_1 = weighted_gene_column_contrastive(genes_out.squeeze(0), C_dst, pos_mask, epoch)
-            
-            # contrastive_loss_1 = weighted_gene_column_contrastive(x.squeeze(0), C_dst, pos_mask, epoch)
-            # contrastive_loss = weighted_spatial_contrastive(cls_out.squeeze(0), C_dst, pos_mask, epoch)
-            # contrastive_loss = Noise_Cross_Entropy_anchor_only(cls_out.squeeze(0), C_dst , pos_candidate_mask, epoch)
-            
-            # loss = loss + 0.005 * contrastive_loss
-            # loss = loss + 0.05 * contrastive_loss
-            # loss = loss + 0.0005 * contrastive_loss
-            
-        # return 10 * (0.1 * loss + 0.9 * cell_loss) + 0.05 * contrastive_loss
-    
-        # return 10 * (0.1 * loss + 0.9 * cell_loss) + 0.05 * contrastive_loss
-        
-        # if epoch == 10:
-        #     import pdb
-        #     pdb.set_trace()
-        
-        # return 10*(0.5*loss + 0.5*cell_loss)
-        # print("cell_loss: ", cell_loss)
-        # print("contrast_loss", contrastive_loss)
-        '''This is what we use'''
-        # return 10*(0.5*loss + 0.5*cell_loss) + 0.01 * contrastive_loss
-        # return 10*(0.5*loss + 0.5*cell_loss) + 0.02 * contrastive_loss
-        
-    
-        # return 10*(0.5*loss + 0.5*cell_loss) + 0.02 * (0.5 * contrastive_loss_1 + 0.5 * contrastive_loss_2)
-        # return 10*(0.5*loss + 0.5*cell_loss) + 0.02 * (0.1 * contrastive_loss_1 + 0.9 * contrastive_loss_2)
+              
         '''our default'''
         # return 10*(0.5*loss + 0.5*cell_loss) + 0.02 * contrastive_loss, cache_payload
-        '''StarMap?'''
-        # return 10*(0.5*loss + 0.5*cell_loss) + 1 * contrastive_loss, cache_payload
-        
-        # return 10*(0.5*loss + 0.5*cell_loss) + 0.05 * contrastive_loss, cache_payload
-        '''Could be BC? check result first and see'''
-        # return 10*(0.5*loss + 0.5*cell_loss) + 0.1* contrastive_loss, cache_payload 
-        
-        # return 10*(0.5*loss + 0.5*cell_loss) + 2* contrastive_loss, cache_payload 
-        
-        # return 10*(0.5*loss + 0.5*cell_loss) + 1.5* contrastive_loss, cache_payload 
-        
+        '''StarMap'''
+        # return 10*(0.5*loss + 0.5*cell_loss) + 2.5 * contrastive_loss, cache_payload
+         
         '''StarMap Used'''
         return 10*(0.5*loss + 0.5*cell_loss) + args.contrastive_weight * contrastive_loss, cache_payload 
-        
-        # return 10*(0.5*loss + 0.5*cell_loss) + 3 * contrastive_loss, cache_payload 
-
-        # return 10*(0.5*loss + 0.5*cell_loss) + 4 * contrastive_loss, cache_payload 
-    
-    
-        # return 10*(0.5*loss + 0.5*cell_loss) + 0.1 * contrastive_loss
-        # return 10*(0.5*loss + 0.5*cell_loss) + 0.05 * contrastive_loss
-        # return 10*(0.5*loss + 0.5*cell_loss) + 1 * contrastive_loss
-        
-        # return 10*loss
-        
-        # '''original code - biformer'''
-        # # import pdb
-        # # pdb.set_trace()
-        
-        # gene_mask = g.attn_gene_mask
-        
-        # adj_gene = (~gene_mask)
-        
-        # coords = g.ndata["pos"]
-        
-        # # adj_ = torch.mm(C_enc, C_enc.T)
-        
-        # # import pdb
-        # # pdb.set_trace()
-        
-        # # adj = filter_outer_positives(coords, C_enc)
-        
-        
-        # # adj_filtered = filter_adjacency_by_similarity(adj, C_enc)
-        # # import pdb
-        # # pdb.set_trace()
-        
-        # '''Working best solution'''
-        # loss_NCE_cell = Noise_Cross_Entropy(C_enc, adj)
-        
-        # # loss_NCE_gene = Noise_Cross_Entropy(G_enc, adj_gene)
-        
-        # # loss_adj = self.BCE_loss(adj_, adj.float())
-        # # orth_loss_cell = self.orthogonal_loss(C_enc)
-        # # orth_loss_gene = self.orthogonal_loss(G_enc)
-        # # loss_lap = self.laplacian_loss(C_enc, adj)
-        
-        
-        # # loss_NCE = Contrastive_Loss_Spatial(C_enc, pos_mask)
-        
-        #  # loss_NCE = self.spatial_contrastive_loss(C_enc, adj)
-        
-        
-        # '''
-        # We do not need this part for our model
-        # but for extension incorporate this part.
-        # '''
-        # # rep = self.encoder_to_decoder(enc_rep)
-        
-        # # import pdb
-        # # pdb.set_trace()
-        
-        
-        # recon1 = self.decoder1(C_enc)
-        # recon2 = self.decoder2(G_enc)
-        # recon2 = recon2.T
-        
-        # # '''Uses graph decoder'''
-        # # recon1 = self.decoder1(g, C_enc)
-        # # recon2 = self.decoder2(G_enc)
-        
-        # # import pdb
-        # # pdb.set_trace()
-        
-        # '''One before masking applied: use_g.ndata['gt']'''
-        # loss1 = mse1(recon1[mask_train], g.ndata['gt'][mask_train])
-        # loss2 = mse2(recon2[mask_train], g.ndata['gt'][mask_train])
-        
-        # # loss = math.sqrt(F.mse_loss(recon[mask], use_g.ndata['gt'][mask]))
-        
-        # # return 0.5 *(loss1) + 0.5 * (loss2)
-        
-        # # return 0.2 * (loss1) + 0.8 * (loss2)
-        
-        # # import pdb
-        # # pdb.set_trace()
-        
-        # # return 0.8 * (loss1) + 0.2 * (loss2) + 0.01 * loss_adj_1
-        
-        # # return 60 * loss1 + 0.01 * loss_NCE
-        
-        # # return loss1
-        
-        # '''Preserve this'''
-        # # return loss1 * 0.9 + 0.1 * loss2
-        
-        # # return 10*(loss1 * 0.9 + 0.1 * loss2) + 0.01 * self.gaussian_weighted_laplacian_loss(C_enc, g)
-        
-        # # import pdb
-        # # pdb.set_trace()
-        
-        # '''This could change'''
-        # if epoch > 1000:
-        #     '''best worked - Visium'''
-        #     # return 10*(loss1 * 0.9 + 0.1 * loss2) + 0.05*loss_NCE_cell 
-        #     return 10 * loss1 + 0.05 * loss_NCE_cell
-        
-        # # + 0.05*loss_NCE_gene
-        
-        #     #+ 0.005*orth_loss_cell + 0.005 * orth_loss_gene
-        #     '''best worked - Visium BC'''
-        #     # return 10*(loss1 * 0.9 + 0.1 * loss2) + 0.001*loss_NCE_cell 
-        #     '''best worked - Starmap'''
-        #     # return 10*(loss1 * 0.9 + 0.1 * loss2) + 1*loss_NCE_cell 
-        #     '''best-worked = Merfish'''
-        #     # return 10*(loss1 * 0.9 + 0.1 * loss2) + 4*loss_NCE_cell
-            
-        #     # return 10*(loss1 * 0.9 + 0.1 * loss2) + 1.5*loss_NCE 
-        #     # return 10*(loss1 * 0.9 + 0.1 * loss2) + 5*loss_NCE 
-        #     # return 10*(loss1 * 0.9 + 0.1 * loss2) + 10*loss_NCE 
-            
-            
-            
-        #     # return 10*(loss1 * 0.9 + 0.1 * loss2) + 0.005*loss_NCE 
-        
-        # # # # # + 0.005*orth_loss
-        # # # # # # + 0.005 * loss_lap
-        # # # else:
-        # # #     return 10*(loss1 * 0.9 + 0.1 * loss2)
-        
-        # return 10*(loss1 * 0.9 + 0.1 * loss2)
-        
-        # # return 10*(loss1)
-            
-        # return 10 * (loss2) 
-        
-        # return 5*(loss1 * 0.9 + 0.1 * loss2)
-        
-        # return 10*(loss1 * 0.9 + loss2 * 0.1) + 0.05 * loss_NCE
-        
-        # return 10*(loss1 * 0.9 + loss2 * 0.1) + 0.3 * loss_NCE
-        
-        # return 5*(loss1 * 0.9 + loss2 * 0.1)
-        
-        # return 10*(loss1 * 0.9 + loss2 * 0.1) + 0.01 * self.weighted_contrastive_loss(C_enc, g)
-        
-    
-    # 0.01 * loss_adj_1
-        
-        # return 0.5 * (loss1) + 0.5 * (loss2)
-        
-        # return loss1 +  0.01 * loss_NCE
-        
-        # return 60 * loss1 + loss2 + 0.01 * loss_NCE
-        # return 60 * loss1 + loss2
-        
-        # return loss2    
-    
-    
-    '''Related to Training and Evaluation'''
-    def evaluate(self, g, x, mode='valid', mask=None, no_pe=False):
-        assert mode in ['valid', 'test', 'infer'], 'Invalid evaluation mode.'
-            
-        # if mode == 'valid' and self._objective in ['mask', 'maskvae']:
-        #     use_g, use_x, (mask_nodes, keep_nodes) = self.encoding_mask_noise(g, x)   
-        # else:
-        
-        use_g, use_x = g, x
-        mask_nodes = np.arange(g.num_nodes())
-
-        if self._encoder_type == 'performer':
-            enc_rep = self.encoder(use_g, use_x, no_pe)
-        else:
-            assert not no_pe, '"no_pe" only supported for performers.'
-            enc_rep = self.encoder(use_g, use_x)
-            
-        if self._concat_hidden:
-            enc_rep = torch.cat(all_hidden, dim=1)
-        rep = self.encoder_to_decoder(enc_rep)
-
-        if self._decoder_type == "zinb":
-            mu, _, pi = self.decoder(rep)
-            recon = (1 - pi) * mu 
-            recon = torch.log(recon+1)
-        else:
-            recon = self.decoder(rep)
-        
-        if mode=='infer':
-            print('Overall RMSE', math.sqrt(F.mse_loss(recon, gt)))
-            return recon, rep
-        elif mode=='test':
-            loss = math.sqrt(F.mse_loss(recon[mask], use_g.ndata['gt'][mask]))
-        elif mode=='valid':
-            if self._objective in ['mask', 'maskvae']:
-                loss = math.sqrt(F.mse_loss(recon[mask_nodes], use_g.ndata['feat'][mask_nodes]))
-            elif self._objective in ['vae', 'ae']:
-                loss = math.sqrt(F.mse_loss(recon, use_g.ndata['feat']))
-        return loss
-    
-    # '''Evaluation Method'''
-    # def batch_test(self, args, graphs, eval_mask, lbl, logger=None, slice=None, slice_num=None):
-    #     # import pdb
-    #     # pdb.set_trace()
-        
-    #     with torch.no_grad():
-    #         self.eval()
-    #         device = next(self.parameters()).device
-    #         res1 = []
-    #         res2 = []
-    #         encres = []
-    #         ground_truths = []
-    #         all_pos = []
-    #         for i, g in enumerate(graphs):
-    #             g = g.to(device)
-    #             '''
-    #             x and gt are not the same - now
-    #             x - zero-ed out entries for M_eval
-    #             gt - log transformed raw gene expression
-    #             '''
-    #             '''This is used for clustering'''
-    #             if args.task == "cluster":
-    #                 x = g.ndata['gt']        
-    #             elif args.task == "imputation":
-    #                 '''This is used for imputation'''
-    #                 x = g.ndata['input']
-
-    #             gt = g.ndata['gt'].cpu()
-    #             pos = g.ndata["pos"]
-    #             all_pos.append(pos)
-    #             ground_truths.append(gt)
-                
-    #             # use_x, mask = self.encoding_mask(x, pc=10, eval=True, first_time=True)
-                
-    #             zero_out_x = x.detach().cpu().numpy()
-    #             # print(zero_out_x)
-                    
-    #             C = self.cell_token(x, eval_mask)
-    #             G = self.gene_token(x, eval_mask)
-    #             C_enc, G_enc = self.encoder(g, C, G)
-    #             cell_emb = C_enc.detach().cpu().numpy()
-    #             gene_emb = G_enc.detach().cpu().numpy()
-                
-    #             '''Graph Decoder'''
-    #             # recon1 = self.decoder1(g, C_enc).cpu()
-    #             ''' MLP Decoder'''
-    #             recon1 = self.decoder1(C_enc).cpu()
-    #             recon2 = self.decoder2(G_enc).cpu()
-    #             recon2 = recon2.T
-    #             eval_mask = eval_mask.bool().cpu().numpy()
-    #             res1.append(recon1)
-    #             res2.append(recon2)
-    #         nres1 = torch.cat(res1).numpy()
-    #         nres2 = torch.cat(res2).numpy()
-    #         # nres1 = None
-    #         # nres2 = None
-    #         # gene_emb = None
-    #         # cell_emb = None
-            
-    #         # latent_embedding = latent_embedding1 * 0.8 + latent_embedding2 * 0.2
-    #         # latent_embedding = latent_embedding2
-            
-            
-    #         if args.task == "cluster":    
-    #             return comprehensive_evaluate(nres1, nres2, cell_emb, gene_emb,  torch.cat(ground_truths).numpy(), zero_out_x, eval_mask, pos, lbl, logger, slice=slice, slice_num=slice_num, num_clusters=args.num_clusters, output_dir=args.output_dir)
-    #         elif args.task == "imputation":
-    #             '''This is for imputation purpose'''
-    #             return comprehensive_evaluate_test(nres1, nres2, torch.cat(ground_truths).numpy(), zero_out_x, eval_mask, pos, lbl, logger)
-                
-                
-                
-                # rep = self.encoder_to_decoder(enc_rep)
-                # encres.append(rep.cpu()) 
-                # if self._decoder_type == "zinb":
-                #     mu, _, pi = self.decoder(rep)
-                #     recon = (1 - pi) * mu
-                #     recon = torch.log(recon+1).cpu()
-                # else:
-                #     recon = self.decoder(rep).cpu()
-                # res.append(recon)
-            # nres = torch.cat(res).numpy()
-                
-                # import pdb
-                # pdb.set_trace()
-                
-                
-                # '''One before masking applied: use_g.ndata['gt']'''
-                # loss1 = mse(recon1[mask], use_g.ndata['gt'][mask])
-                
-                # loss2 = mse(recon2[mask], use_g.ndata['gt'][mask])
-                
-                # return loss1 + loss2
 
     def batch_test(self, args, graphs, eval_mask, lbl,logger=None, slice=None, slice_num=None, save_pt_name=None):
         with torch.no_grad():
-            
-         
             self.eval()
                     
             device = eval_mask.device
@@ -2463,8 +1549,6 @@ class PreModel(nn.Module):
             #         '''This is for imputation purpose'''
             #         return comprehensive_evaluate_test(X_pred_full.cpu().detach().numpy(), X.detach().cpu().numpy(), eval_mask.cpu().detach().numpy())
                 
-                
-            
 
             for i,g in enumerate(graphs):
                 epoch = 0
@@ -2495,9 +1579,6 @@ class PreModel(nn.Module):
                     bin_batch   = X_bins[cell_ids]    # [C_batch, G]
                     z_batch     = z_val[cell_ids]          # [C_batch, G]
 
-                    # For evaluation:
-                    #   eval_mask_full == True  → entry should be reconstructed (masked at input)
-                    #   eval_mask_full == False → entry stays as context
                     if task == "imputation":
                         mask_batch  = eval_mask[cell_ids]  # [C_batch, G], bool
                     elif task == "cluster":
@@ -2507,13 +1588,10 @@ class PreModel(nn.Module):
                         
                     # Build adjacency submatrix for column attention
                     A_sub = adj[cell_ids][:, cell_ids].bool()  # [C_batch, C_batch]
-                    # A_sub_pca_filtered = adj_pca_filtered[cell_ids][:, cell_ids].bool() 
                     
                     A_hat = adj[cell_ids][:, cell_ids].float()
                     deg = A_hat.sum(dim=1, keepdim=True).clamp_min(1e-8)
                     A_hat = A_hat / deg 
-                    
-                    # A_sub = A_sub + A_sub.fill_diagonal_(0)        
                     
                     # Allow self-attention for stability
                     cell_attn_mask_batch = ~A_sub   # True = block
@@ -2527,9 +1605,6 @@ class PreModel(nn.Module):
                     A_sub_pre_edge = A_sub[:C_dst, :]
                     edge_idx = adj_to_edge_index(A_sub_pre_edge)
                     
-                    
-                    
-                    # pool = GeneAttentionPool(emb_size).to(device)
                     iden_emb, tokens = self.entry_token(cell_ids, bin_batch, z_batch, mask_batch)
                     B = 1
                     C, G, D = tokens.shape
@@ -2564,34 +1639,22 @@ class PreModel(nn.Module):
                     '''decoder step'''
                     X_pred_batch = self.decoderGene(genes_out).squeeze(-1).squeeze(0)
                     if is_cls:
-                        # Todo
-                        # X_pred_batch = self.decoderCLS(genes_out, cls_out)
-                        # X_pred_cell = self.decoderCell(iden_emb, cls_out)
-                        # X_pred_cell_batch = X_pred_cell[:C_dst, :]
                         pass
                     
-                    X_pred_dst = X_pred_batch[:C_dst, :]
-                    '''This implies cls will be all similar'''
-                    
-                                    
+                    X_pred_dst = X_pred_batch[:C_dst, :]                 
                     # cls_dst    = cls_out[:, :C_dst, :].squeeze(0)
                     
-                    '''I should make this is only for imputation'''
                     X_pred_full[target_idx] = X_pred_dst
                     # cell_emb_full[target_idx] = cls_dst.detach().cpu()
                     
                     
                     # cell_emb_batch = pool(x)
                 
-                    '''What made this dimension change from d=2 to d=1??? -> we just do not squeeze. But this all needs to be verified'''
                     if not is_cls:
                         cell_context =  genes_out.max(dim=2)[0].squeeze(0)
                         cell_emb_batch = cell_context[:C_dst, :]
                         cell_emb_full[target_idx] = cell_emb_batch.cpu()
                     else:
-                        '''cls exists'''
-                        
-                        '''This needs to be verified'''
                         cls_dst    = cls_out[:, :C_dst, :].squeeze(0)
                         cell_emb_full[target_idx] = cls_dst.cpu()
                 
@@ -2606,9 +1669,6 @@ class PreModel(nn.Module):
                 # X_pred_full[cell_ids_cpu] = X_pred_batch
                 
                 # cell_emb_full[target_idx] = cell_emb_batch.cpu()
-                
-                # import pdb
-                # pdb.set_trace()
                 # cell_emb_full[cell_ids_cpu] = cls_out.squeeze(0).cpu()
                 
                 # import pdb    
