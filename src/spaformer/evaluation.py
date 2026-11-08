@@ -23,18 +23,14 @@ dataset_name = "DLPFC_151673"
 data = "spatial"
 marker_genes = 10
 house_keeping_genes = 0
-test_folder = f"experiment_3"
 radius = 150
-HVG = 3000
 '''Merfish - 8, BC - 20, Visium DLPFC, STARmap - 7'''
 SPOT_SIZE=150 
 
 # hyperparams
 NUM_CLUSTER = None
 epoch = "150"
-num_layers = "4"
 loss_type = "batch_15_100_PCs_2d5_z_bin_logX_A"
-model_type = "SpaAxFormer"
 
 
 def mclust_R(adata, num_cluster, modelNames='EEE', used_obsm='X_pca', random_seed=2022):
@@ -148,7 +144,15 @@ def create_plot(adata, pos):
         plt.close()
     
 
-def create_cluster_plot(adata, gt, pos, ARI, key='mclust', slice=None, slice_num=None, output_dir="results/run"):
+def _plot_run_name(dataset, sample, repeat, epochs, num_layers):
+    fields = (dataset, sample,
+              f"repeat{repeat}" if repeat is not None else None,
+              f"epochs{epochs}" if epochs is not None else None,
+              f"layers{num_layers}" if num_layers is not None else None)
+    return "_".join(str(value) for value in fields if value is not None)
+
+
+def create_cluster_plot(adata, gt, pos, ARI, key='mclust', slice=None, slice_num=None, output_dir="results/run", *, dataset=None, epochs=None, num_layers=None):
     
     
     # SPOT_SIZE = 200 - Visium
@@ -167,17 +171,10 @@ def create_cluster_plot(adata, gt, pos, ARI, key='mclust', slice=None, slice_num
                             legend_fontsize=20, show=False, ax=ax[1], frameon=False,
                             spot_size=SPOT_SIZE)
     
-    fig_name = (
-        f"cluster_image_{data}"
-        f"_{slice}"
-        f"_{slice_num}"
-        f"_{epoch}"
-        f"_{key}"
-        f"_{HVG}"
-        f"_cell_{num_layers}_L_mask_30_mask_zero_epoch_{epoch}_{model_type}.png"
-    ) 
+    run_name = _plot_run_name(dataset, slice, slice_num, epochs, num_layers)
+    fig_name = f"cluster_{run_name}_{key}.png"
     
-    out_dir = f"{output_dir}/figures/{data}/investigate/cluster/{slice}/{test_folder}"
+    out_dir = str(Path(output_dir) / "figures" / (dataset or "") / "investigate" / "cluster" / str(slice))
     
     save_path = os.path.join(out_dir, fig_name)
     os.makedirs(out_dir, exist_ok=True)
@@ -218,7 +215,7 @@ def row_normalize(X, eps=1e-8):
     return X / (X.sum(axis=1, keepdims=True) + eps)
 
 
-def plot_embedding(adata, key, slice=None, slice_num=None, output_dir="results/run"):
+def plot_embedding(adata, key, slice=None, slice_num=None, output_dir="results/run", *, dataset=None, epochs=None, num_layers=None):
     
     sc.pl.umap(
     adata,
@@ -229,17 +226,10 @@ def plot_embedding(adata, key, slice=None, slice_num=None, output_dir="results/r
     show=False
     )
     
-    fig_name = (
-        f"Umap_image_{data}"
-        f"_{slice}"
-        f"_{slice_num}"
-        f"_{epoch}"
-        f"_{key}"
-        f"_{HVG}"
-        f"_cell_{num_layers}_L_mask_30_mask_zero_epoch_{epoch}_{model_type}.png"
-    )  
+    run_name = _plot_run_name(dataset, slice, slice_num, epochs, num_layers)
+    fig_name = f"umap_{run_name}_{key}.png"
     
-    out_dir = f"{output_dir}/figures/{data}/investigate/cluster/{slice}/{test_folder}/umap"
+    out_dir = str(Path(output_dir) / "figures" / (dataset or "") / "investigate" / "cluster" / str(slice) / "umap")
     
     save_path = os.path.join(out_dir, fig_name)
     os.makedirs(out_dir, exist_ok=True)
@@ -293,7 +283,7 @@ def comprehensive_evaluate_test(X_pred, gex, mask):
 
         
 
-def comprehensive_evaluate(cell_embedding, gex, mask, pos, lbl, logger = None, emb = None, slice=None, slice_num=None, refinement=True, num_clusters=None, output_dir="results/run"):
+def comprehensive_evaluate(cell_embedding, gex, mask, pos, lbl, logger = None, emb = None, slice=None, slice_num=None, refinement=True, num_clusters=None, output_dir="results/run", *, dataset=None, epochs=None, num_layers=None):
     if num_clusters is None:
         raise ValueError("num_clusters must be explicitly configured")
     NUM_CLUSTER = num_clusters
@@ -378,7 +368,8 @@ def comprehensive_evaluate(cell_embedding, gex, mask, pos, lbl, logger = None, e
     adata.obs['mclust'] = pd.Series(match_cluster_labels(gt, adata.obs['mclust'].values),
                                             index=adata.obs.index, dtype='category')
     
-    plot_embedding(adata, key, slice=slice, slice_num=slice_num, output_dir=output_dir)
+    plot_embedding(adata, key, slice=slice, slice_num=slice_num, output_dir=output_dir,
+                   dataset=dataset, epochs=epochs, num_layers=num_layers)
         
     pred_labels = adata.obs['mclust']
     
@@ -387,7 +378,8 @@ def comprehensive_evaluate(cell_embedding, gex, mask, pos, lbl, logger = None, e
     
     print("regular: \n", ARI_score, NMI_score)
     
-    create_cluster_plot(adata, gt, pos, ARI_score, slice = slice, slice_num=slice_num, output_dir=output_dir)
+    create_cluster_plot(adata, gt, pos, ARI_score, slice = slice, slice_num=slice_num, output_dir=output_dir,
+                        dataset=dataset, epochs=epochs, num_layers=num_layers)
     
     '''This is for refining labels'''
     
@@ -406,7 +398,8 @@ def comprehensive_evaluate(cell_embedding, gex, mask, pos, lbl, logger = None, e
     
     
     
-    create_cluster_plot(adata, gt, pos, ARI_score_refined, slice = slice, slice_num=slice_num, key='refined', output_dir=output_dir)
+    create_cluster_plot(adata, gt, pos, ARI_score_refined, slice = slice, slice_num=slice_num, key='refined', output_dir=output_dir,
+                        dataset=dataset, epochs=epochs, num_layers=num_layers)
     
     return ARI_score, ARI_score_refined, NMI_score, NMI_score_refined
 

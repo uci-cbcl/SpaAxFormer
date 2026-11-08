@@ -1704,7 +1704,8 @@ class PreModel(nn.Module):
             
             if args.task == "cluster":
                 '''This is for clustering purpose'''
-                return comprehensive_evaluate(cell_emb_full.cpu().detach().numpy(), X.detach().cpu().numpy(), eval_mask, pos, lbl, logger, slice=slice, slice_num=slice_num, num_clusters=args.num_clusters, output_dir=args.output_dir)
+                return comprehensive_evaluate(cell_emb_full.cpu().detach().numpy(), X.detach().cpu().numpy(), eval_mask, pos, lbl, logger, slice=slice, slice_num=slice_num, num_clusters=args.num_clusters, output_dir=args.output_dir,
+                                              dataset=args.dataset, epochs=args.max_epoch, num_layers=args.num_layers)
             elif args.task == "imputation":
                 '''This is for imputation purpose'''
                 return comprehensive_evaluate_test(X_pred_full.cpu().detach().numpy(), X.detach().cpu().numpy(), eval_mask.cpu().detach().numpy())
