@@ -12,12 +12,10 @@ def build_model(args):
     norm = args.norm
     negative_slope = args.negative_slope
     encoder_type = args.encoder
-    decoder_type = args.decoder
     mask_node_rate = args.mask_node_rate
     mask_feature_rate = args.mask_feature_rate
 
     activation = args.activation
-    loss_fn = args.loss_fn
     concat_hidden = args.concat_hidden
     
     num_features = args.num_features
@@ -30,7 +28,6 @@ def build_model(args):
     standardscale = args.standardscale
     cat_pe = args.cat_pe
     pe_aug = args.pe_aug
-    aggr = args.aggr
     
     model = PreModel(
         in_cell=num_cells,
@@ -45,11 +42,9 @@ def build_model(args):
         attn_drop=attn_drop,
         negative_slope=negative_slope,
         encoder_type=encoder_type,
-        decoder_type=decoder_type,
         mask_node_rate=mask_node_rate,
         mask_feature_rate=mask_feature_rate,
         norm=norm,
-        loss_fn=loss_fn,
         concat_hidden=concat_hidden,
         latent_dim=latent_dim,
         pe = pe,
@@ -58,6 +53,5 @@ def build_model(args):
         standardscale = standardscale,
         cat_pe = cat_pe,
         pe_aug = pe_aug,
-        aggr = aggr,
     )
     return model

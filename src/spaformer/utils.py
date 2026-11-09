@@ -104,9 +104,6 @@ def build_args():
     parser.add_argument("--drop_node_rate", type=float, default=0.3)
 
     parser.add_argument("--encoder", type=str, default="spaaxformer", choices=["spaaxformer"])
-    parser.add_argument("--decoder", type=str, default="mlp", choices=["mlp", "zinb"])
-    parser.add_argument("--aggr", type=str, default="SAGE", choices=["GAT", "SAGE"])
-    parser.add_argument("--loss_fn", type=str, default="mse", choices=["mse", "wmse"])
     parser.add_argument("--optimizer", type=str, default="adamw")
         
     parser.add_argument("--no_cls", dest="cls", action="store_false")
@@ -1735,12 +1732,10 @@ class Logger(object):
     def note(self, metrics_dict):
         metrics_dict['seed'] = self.seed
         metrics_dict['num_hidden'] = self.args.num_hidden
-        metrics_dict['decoder'] = self.args.decoder
         metrics_dict['objective'] = self.args.objective
         metrics_dict['num_layers'] = self.args.num_layers
         metrics_dict['num_heads'] = self.args.num_heads
         metrics_dict['norm'] = self.args.norm
-        metrics_dict['aggr'] = self.args.aggr
         metrics_dict['mask_node_rate'] = self.args.mask_node_rate
         metrics_dict['mask_feature_rate'] = self.args.mask_feature_rate
         metrics_dict['drop_node_rate'] = self.args.drop_node_rate

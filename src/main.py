@@ -192,11 +192,9 @@ def main(args):
     num_hidden = args.num_hidden
     num_layers = args.num_layers
     encoder_type = args.encoder
-    decoder_type = args.decoder
     
     optim_type = args.optimizer
     
-    loss_fn = args.loss_fn
     lr = args.lr
     weight_decay = args.weight_decay
     load_model = args.load_model

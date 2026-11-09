@@ -20,7 +20,7 @@ from ..utils import Noise_Cross_Entropy, Contrastive_Loss_Spatial, filter_outer_
 from ..utils import objective_metadata
 
     
-def setup_module(m_type, enc_dec, in_dim, d_emb_size, num_hidden, out_dim, num_layers, dropout, activation, norm, nhead, nhead_out, attn_drop, pe=None, negative_slope=0.2, concat_out=True, latent_dim=20, cat_pe=False, pe_aug=False, aggr='SAGE') -> nn.Module:
+def setup_module(m_type, enc_dec, in_dim, d_emb_size, num_hidden, out_dim, num_layers, dropout, activation, norm, nhead, nhead_out, attn_drop, pe=None, negative_slope=0.2, concat_out=True, latent_dim=20, cat_pe=False, pe_aug=False) -> nn.Module:
     if m_type != "spaaxformer":
         raise ValueError("Release supports only spaaxformer")
     mod = SpaAxFormerEncoder(
@@ -276,9 +276,7 @@ class PreModel(nn.Module):
             mask_node_rate: float = 0.5,
             mask_feature_rate: float = 0.5,
             encoder_type: str = "gat",
-            decoder_type: str = "zinb",
             d_emb_size = 128,        
-            loss_fn: str = "sce",
             alpha_l: float = 2,
             concat_hidden: bool = False,
             # latent_dim : int = 70,
@@ -290,13 +288,11 @@ class PreModel(nn.Module):
             standardscale : int = 250, 
             cat_pe = False,
             pe_aug = False,
-            aggr = 'SAGE',
          ):
         
         
         super(PreModel, self).__init__()
         self._encoder_type = encoder_type
-        self._decoder_type = decoder_type
         
         self._d_emb_size = d_emb_size
         self._objective = objective
@@ -344,7 +340,6 @@ class PreModel(nn.Module):
             pe = pe,
             cat_pe = cat_pe,
             pe_aug = pe_aug,
-            aggr = aggr,
         )
             
         self.decoderE = nn.Linear(d_emb_size, 1)
