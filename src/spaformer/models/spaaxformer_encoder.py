@@ -304,7 +304,7 @@ class AxialBlockLayer(nn.Module):
         return x_new
 
 
-class AxialTransformer_temp_fix(nn.Module):
+class SpaAxFormerEncoder(nn.Module):
     def __init__(self, d_model: int, n_heads: int, num_layers: int, dropout: float = 0.1):
         
         super().__init__()

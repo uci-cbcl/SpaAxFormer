@@ -103,7 +103,7 @@ def build_args():
     parser.add_argument("--mask_feature_rate", type=float, default=0.5)
     parser.add_argument("--drop_node_rate", type=float, default=0.3)
 
-    parser.add_argument("--encoder", type=str, default="axialformer_temp_fix", choices=["axialformer_temp_fix"])
+    parser.add_argument("--encoder", type=str, default="spaaxformer", choices=["spaaxformer"])
     parser.add_argument("--decoder", type=str, default="mlp", choices=["mlp", "zinb"])
     parser.add_argument("--aggr", type=str, default="SAGE", choices=["GAT", "SAGE"])
     parser.add_argument("--loss_fn", type=str, default="mse", choices=["mse", "wmse"])

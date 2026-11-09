@@ -12,7 +12,7 @@ import math
 import pickle
 
 
-from .axialformer_temp_fix import AxialTransformer_temp_fix
+from .spaaxformer_encoder import SpaAxFormerEncoder
 
 from ..evaluation import comprehensive_evaluate
 from ..evaluation import comprehensive_evaluate_test
@@ -21,9 +21,9 @@ from ..utils import objective_metadata
 
     
 def setup_module(m_type, enc_dec, in_dim, d_emb_size, num_hidden, out_dim, num_layers, dropout, activation, norm, nhead, nhead_out, attn_drop, pe=None, negative_slope=0.2, concat_out=True, latent_dim=20, cat_pe=False, pe_aug=False, aggr='SAGE') -> nn.Module:
-    if m_type != "axialformer_temp_fix":
-        raise ValueError("Release supports only axialformer_temp_fix")
-    mod = AxialTransformer_temp_fix(
+    if m_type != "spaaxformer":
+        raise ValueError("Release supports only spaaxformer")
+    mod = SpaAxFormerEncoder(
         d_model = d_emb_size,
         n_heads = nhead,
         num_layers=num_layers,
@@ -1318,11 +1318,11 @@ class PreModel(nn.Module):
             B=cache_payload["B"],)
 
     def forward(self, args, g, X, X_pca, X_bins, z_val, mask_in, mask_train, cell_ids_cpu, target_idx, epoch, count): 
-        requires_cls = args.encoder == "axialformer_temp_fix"
+        requires_cls = args.encoder == "spaaxformer"
 
         if requires_cls and not args.cls:
             raise ValueError(
-            "axialformer_temp_fix requires CLS for the retained-CLS configuration. "
+            "spaaxformer requires CLS for the retained-CLS configuration. "
             "For GEP-only, remove --no_cls and use --no_gepc without --contrast.")    
         
         is_cls = args.cls
@@ -1372,7 +1372,7 @@ class PreModel(nn.Module):
         cell_attn_mask_batch = ~A_sub   # True = block attention
         # cell_attn_mask_batch_pca_filter = ~A_sub_pca_filtered
         
-        '''This pertains to Axialformer_temp_fix module'''     
+        '''This pertains to SpaAxFormerEncoder module'''
         A_hat = adj[target_idx][:, cell_ids_cpu].float()
         deg = A_hat.sum(dim=1, keepdim=True).clamp_min(1e-8)
         A_hat = A_hat / deg
@@ -1476,11 +1476,11 @@ class PreModel(nn.Module):
             is_cls = args.cls
             is_gepc = args.gepc
             
-            requires_cls = args.encoder == "axialformer_temp_fix"
+            requires_cls = args.encoder == "spaaxformer"
 
             if requires_cls and not is_cls:
                 raise ValueError(
-                    "axialformer_temp_fix requires CLS during inference. "
+                    "spaaxformer requires CLS during inference. "
                     "Remove --no_cls. For GEP-only, use --no_gepc "
                     "without --contrast."
                 )
