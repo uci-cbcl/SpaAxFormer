@@ -1,5 +1,3 @@
-# Proposed review environment; not the recovered historical environment.
-# Resolve and lock a compatible PyTorch/DGL/CUDA stack before claiming reproduction.
 name: spaaxformer-release
 channels:
   - conda-forge
