@@ -1,0 +1,12 @@
+# Proposed review environment; not the recovered historical environment.
+# Resolve and lock a compatible PyTorch/DGL/CUDA stack before claiming reproduction.
+name: spaaxformer-release
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - r-base
+  - r-mclust
+  - pip:
+      - -r requirements.txt
