@@ -1,0 +1,20 @@
+torch
+dgl
+numpy
+pandas
+scipy
+scikit-learn
+scanpy
+anndata
+h5py
+umap-learn
+scikit-misc
+matplotlib
+networkx
+POT
+PyYAML
+tensorboardX
+tqdm
+# Clustering requires R with the mclust package.
+# SpaAxFormer uses numpy2ri.activate(), which is incompatible with rpy2 >= 3.6.
+rpy2>=3.4.5,<3.6

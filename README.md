@@ -9,7 +9,7 @@ observation-level representation for spatial-domain identification.
 
 This repository supports spatial-domain clustering and gene-expression imputation.
 Training combines gene-expression prediction (GEP), CLS-conditioned gene-expression
-prediction (GEPC), and optional weighted multi-positive spatial contrastive learning.
+prediction (GEPC), and weighted multi-positive spatial contrastive learning.
 The objectives used depend on the task and configuration.
 
 ## Key features
@@ -33,6 +33,8 @@ Create and activate the provided Conda environment from the repository root:
 conda env create -f environment.yml
 conda activate spaaxformer-release
 ```
+
+PyTorch and DGL should be installed with mutually compatible versions for the target CPU/CUDA environment.
 
 Spatial-domain clustering uses `mclust` through `rpy2`, so R and the `mclust`
 package must also be available.
