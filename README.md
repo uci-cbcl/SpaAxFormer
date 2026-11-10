@@ -124,12 +124,6 @@ For GEP-only imputation, use `--no_gepc` and omit `--contrast`.
 `--contrastive-weight 0` is still required by the parser. Supply one existing
 `--imputation-split` ID per repetition.
 
-## Reproducibility
-
-The released implementation corresponds to the SpaAxFormer architecture and
-objectives described in the manuscript. Exact numerical results may vary with
-random initialization and preprocessing state.
-
 ## Citation
 
 If you use SpaAxFormer in your research, please cite our manuscript.
